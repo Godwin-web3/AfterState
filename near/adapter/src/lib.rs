@@ -329,3 +329,59 @@ pub struct AdapterConfig {
     pub destination_registry: [u8; 20],
     pub signer_version: u32,
 }
+
+
+#[cfg(test)]
+mod adapter_tests {
+    use super::*;
+    use near_sdk::test_utils::VMContextBuilder;
+    use near_sdk::testing_env;
+    use std::panic::{catch_unwind, AssertUnwindSafe};
+    use std::str::FromStr;
+
+    fn construct(foreign_domain: u64, sign_domain: u64) -> AfterStateNearAdapter {
+        testing_env!(
+            VMContextBuilder::new()
+                .current_account_id(AccountId::from_str("adapter.testnet").unwrap())
+                .block_timestamp(1_700_000_000_000_000_000)
+                .build()
+        );
+
+        AfterStateNearAdapter::new(
+            AccountId::from_str("mpc.testnet").unwrap(),
+            AccountId::from_str("submitter.testnet").unwrap(),
+            foreign_domain,
+            sign_domain,
+            20,
+            20,
+            20,
+            20,
+            [1; 20],
+            [2; 32],
+            1,
+            [3; 20],
+            [4; 20],
+            1,
+            100,
+            1_800_000_000,
+            [5; 32],
+            BASE_SEPOLIA_CHAIN_ID,
+            [6; 20],
+            [7; 20],
+            1,
+        )
+    }
+
+    #[test]
+    fn constructor_accepts_distinct_mpc_purposes() {
+        let adapter = construct(10, 11);
+        assert_eq!(adapter.foreign_tx_domain_id, DomainId(10));
+        assert_eq!(adapter.sign_domain_id, DomainId(11));
+    }
+
+    #[test]
+    fn constructor_rejects_reusing_foreign_tx_domain_for_signing() {
+        let result = catch_unwind(AssertUnwindSafe(|| construct(10, 10)));
+        assert!(result.is_err(), "same MPC domain was accepted for both purposes");
+    }
+}
