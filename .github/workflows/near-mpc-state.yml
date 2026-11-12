@@ -22,9 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
+      - uses: dtolnay/rust-toolchain@stable
       - name: Query live NEAR MPC testnet views
         env:
           ADAPTER_ACCOUNT_ID: ${{ inputs.adapter_account_id }}
