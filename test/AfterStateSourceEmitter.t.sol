@@ -26,7 +26,7 @@ contract SourceMockERC20 {
         return true;
     }
 
-    function transferFrom(address from, address to, uint256 amount) external returns (bool) {
+    function transferFrom(address from, address to, uint256 amount) external virtual returns (bool) {
         require(allowance[from][msg.sender] >= amount, "allowance");
         require(balanceOf[from] >= amount, "balance");
         allowance[from][msg.sender] -= amount;
@@ -115,7 +115,7 @@ contract AfterStateSourceEmitterTest {
 }
 
 contract FeeOnTransferToken is SourceMockERC20 {
-    function transferFrom(address from, address to, uint256 amount) external returns (bool) {
+    function transferFrom(address from, address to, uint256 amount) external override returns (bool) {
         require(allowance[from][msg.sender] >= amount, "allowance");
         require(balanceOf[from] >= amount, "balance");
         allowance[from][msg.sender] -= amount;
