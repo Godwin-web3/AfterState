@@ -30,6 +30,26 @@ jobs:
           targets: wasm32-unknown-unknown
       - name: Validate live-state query script
         run: bash -n near/scripts/query-mpc-testnet.sh
+      - name: Validate adapter deployment tooling
+        env:
+          AUTHORIZED_SUBMITTER: submitter.testnet
+          FOREIGN_TX_DOMAIN_ID: "3"
+          SIGN_DOMAIN_ID: "0"
+          BASE_SEPOLIA_SOURCE_EMITTER: "0x1111111111111111111111111111111111111111"
+          AGREEMENT_ID: "0x2222222222222222222222222222222222222222222222222222222222222222"
+          EXPECTED_ASSET_ADDRESS: "0x3333333333333333333333333333333333333333"
+          DESTINATION_RECIPIENT: "0x4444444444444444444444444444444444444444"
+          FINALITY_POLICY_ID: "0x5555555555555555555555555555555555555555555555555555555555555555"
+          AFTERSTATE_VERIFIER_ADDRESS: "0x6666666666666666666666666666666666666666"
+          AFTERSTATE_REGISTRY_ADDRESS: "0x7777777777777777777777777777777777777777"
+          MIN_AMOUNT: "1"
+          MAX_AMOUNT: "10"
+          AGREEMENT_DEADLINE: "1893456000"
+        run: |
+          bash -n near/scripts/deploy-adapter.sh
+          python3 -m py_compile near/scripts/build_adapter_init_args.py
+          python3 near/scripts/build_adapter_init_args.py > /tmp/adapter-init-args.json
+          jq -e '.foreign_tx_domain_id == 3 and .sign_domain_id == 0 and .destination_chain_id == 11155111 and (.source_emitter | length == 20) and .min_amount == "1"' /tmp/adapter-init-args.json
       - name: Run pinned MPC serialization fixtures
         run: |
           cargo test --manifest-path near/foreign-tx-fixtures/Cargo.toml
