@@ -7,9 +7,9 @@ Deployed MPC version: `3.18.0`
 Keyset epoch: `27`  
 Threshold: `11 of 17`
 
-Evidence: [read-only state workflow run 43239982726](https://github.com/Godwin-web3/AfterState/actions/runs/43239982726)  
+Evidence: [read-only state workflow run 43240885721](https://github.com/Godwin-web3/AfterState/actions/runs/43240885721)  
 Artifact: `near-mpc-testnet-state`  
-Artifact SHA-256: `60b8a6d6f9bb67682b9a84b1be4a4f17550b0fe22116668bb6c0142bb265f113`
+Artifact SHA-256: `b9cfec4831bff92c9754d246dbc562dabd8556cf0414f233cb448f37a3143da3`
 
 ## Foreign-chain support
 
@@ -36,7 +36,12 @@ Configured provider quorum: **2**. This is the RPC-provider response quorum, not
 | 6 | ConfidentialKeyDerivation | CKD | BLS12-381 |
 | 7 | CaitSith | ForeignTx | Secp256k1 |
 
-**Initial integration selection:** ForeignTx domain **3** and Sign domain **0**. They are distinct and have the required purposes. Domain 0 has a Secp256k1 root key suitable for EVM address derivation. This selection is a snapshot, not a permanent guarantee: re-read the live state immediately before deployment and abort if either domain's purpose or key type changed.
+**Initial integration selection:** ForeignTx domain **3** and Sign domain **0**. They are distinct and have the required purposes.
+
+- Domain 3 ForeignTx root public key: `secp256k1:2KGCoy2pZt7n85QfJnQzCT1eHySuNpquUfNc8ySpRbr15F5kqU7agJYjfo5RkrzNd4tZimDFv2wAZri7RRZ32qj1`
+- Domain 0 Sign root public key: `secp256k1:4NfTiv3UsGahebgTaHyD9vF8KYKMBnfd6kh94mK6xv8fGBiJB8TBtFMP5WWXz6B89Ac1fbpzPwAvoyQebemHFwx3`
+
+The workflow now discovers the first live ForeignTx domain and the first Sign domain with a Secp256k1 key, then queries both public keys. Domain 0 is the current EVM Sign selection. This selection is a snapshot, not a permanent guarantee: re-read live state immediately before deployment and abort if either domain's purpose or key type changed.
 
 ## Gas requirements observed
 
