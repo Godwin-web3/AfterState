@@ -24,7 +24,7 @@ The request builder, event decoder, EIP-712 digest and signature encoder live in
 - source_emitter, agreement_id/version, asset, recipient, min/max amount, agreement_deadline and finality_policy_id.
 - destination_chain_id, verifier_contract, destination_registry and signer_version.
 
-Both MPC calls attach 1 yoctoNEAR. Domain IDs, gas allocations, available chains, provider quorum and root keys must be read from live testnet state. Never copy domain IDs or gas values from a tutorial.
+Both MPC calls attach 1 yoctoNEAR. Domain IDs, gas allocations, available chains, provider quorum and root keys must be read from live testnet state. Never copy domain IDs or gas values from a tutorial. Run the NEAR MPC Testnet State workflow in GitHub Actions; provide the deployed adapter account and Sign domain ID to retrieve the derived public key and EVM address.
 
 ## EVM signer configuration
 
