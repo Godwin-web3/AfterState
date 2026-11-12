@@ -1,21 +1,28 @@
 use afterstate_near_foreign_tx_fixtures::{
-    build_base_foreign_tx_request, decode_source_payment, BaseEvmLogCandidate,
+    afterstate_eip712_digest, build_base_foreign_tx_request, decode_source_payment,
+    mpc_signature_to_evm_bytes, source_payment_topic0, BaseEvmLogCandidate, Eip712SourceFact,
 };
 use near_mpc_contract_interface::types::{
-    DomainId, Hash256, VerifyForeignTransactionResponse,
+    DomainId, Hash256, Payload, SignRequestArgs, SignatureResponse,
+    VerifyForeignTransactionRequestArgs, VerifyForeignTransactionResponse,
 };
 use near_sdk::{
     env, ext_contract, near, require, AccountId, Gas, NearToken, PanicOnDefault, Promise,
     PromiseError,
 };
 
+const BASE_SEPOLIA_CHAIN_ID: u64 = 84_532;
+const SIGN_PATH: &str = "afterstate-v1";
+
 #[allow(dead_code)]
 #[ext_contract(ext_mpc)]
 trait ExtMpc {
     fn verify_foreign_transaction(
         &mut self,
-        request: near_mpc_contract_interface::types::VerifyForeignTransactionRequestArgs,
+        request: VerifyForeignTransactionRequestArgs,
     ) -> VerifyForeignTransactionResponse;
+
+    fn sign(&mut self, request: SignRequestArgs) -> SignatureResponse;
 }
 
 #[allow(dead_code)]
@@ -24,23 +31,30 @@ trait ExtSelf {
     fn on_foreign_tx_verified(
         &self,
         expected_payload_hash: Hash256,
+        fact: Eip712SourceFact,
         #[callback_result] result: Result<VerifyForeignTransactionResponse, PromiseError>,
-    ) -> VerifyForeignTransactionResponse;
+    ) -> Promise;
+
+    fn on_signature(
+        &self,
+        #[callback_result] result: Result<SignatureResponse, PromiseError>,
+    ) -> Vec<u8>;
 }
 
-/// Minimal NEAR adapter for the MPC ForeignTx verification stage.
-///
-/// The configured agreement is immutable in this first vertical slice. The
-/// adapter validates the SourcePayment event schema and agreement fields
-/// before asking MPC to independently verify the exact source log.
+/// NEAR adapter for Base ForeignTx verification followed by a fixed-path
+/// Chain Signatures EIP-712 signature. The configured agreement is immutable
+/// in this first vertical slice.
 #[near(contract_state)]
 #[derive(PanicOnDefault)]
 pub struct AfterStateNearAdapter {
     mpc_contract_id: AccountId,
     authorized_submitter: AccountId,
     foreign_tx_domain_id: DomainId,
+    sign_domain_id: DomainId,
     mpc_call_gas_tgas: u64,
-    callback_gas_tgas: u64,
+    foreign_callback_gas_tgas: u64,
+    sign_call_gas_tgas: u64,
+    signature_callback_gas_tgas: u64,
     source_emitter: [u8; 20],
     agreement_id: [u8; 32],
     agreement_version: u32,
@@ -50,6 +64,10 @@ pub struct AfterStateNearAdapter {
     max_amount: u128,
     agreement_deadline: u64,
     finality_policy_id: [u8; 32],
+    destination_chain_id: u64,
+    verifier_contract: [u8; 20],
+    destination_registry: [u8; 20],
+    signer_version: u32,
 }
 
 #[near]
@@ -59,8 +77,11 @@ impl AfterStateNearAdapter {
         mpc_contract_id: AccountId,
         authorized_submitter: AccountId,
         foreign_tx_domain_id: u64,
+        sign_domain_id: u64,
         mpc_call_gas_tgas: u64,
-        callback_gas_tgas: u64,
+        foreign_callback_gas_tgas: u64,
+        sign_call_gas_tgas: u64,
+        signature_callback_gas_tgas: u64,
         source_emitter: [u8; 20],
         agreement_id: [u8; 32],
         agreement_version: u32,
@@ -70,9 +91,15 @@ impl AfterStateNearAdapter {
         max_amount: u128,
         agreement_deadline: u64,
         finality_policy_id: [u8; 32],
+        destination_chain_id: u64,
+        verifier_contract: [u8; 20],
+        destination_registry: [u8; 20],
+        signer_version: u32,
     ) -> Self {
         require!(mpc_call_gas_tgas > 0, "MPC call gas must be non-zero");
-        require!(callback_gas_tgas > 0, "callback gas must be non-zero");
+        require!(foreign_callback_gas_tgas > 0, "ForeignTx callback gas must be non-zero");
+        require!(sign_call_gas_tgas > 0, "sign call gas must be non-zero");
+        require!(signature_callback_gas_tgas > 0, "signature callback gas must be non-zero");
         require!(source_emitter != [0; 20], "source emitter is zero");
         require!(agreement_id != [0; 32], "agreement ID is zero");
         require!(agreement_version > 0, "agreement version is zero");
@@ -84,13 +111,20 @@ impl AfterStateNearAdapter {
             "agreement deadline has passed"
         );
         require!(finality_policy_id != [0; 32], "finality policy is zero");
+        require!(destination_chain_id > 0, "destination chain ID is zero");
+        require!(verifier_contract != [0; 20], "verifier contract is zero");
+        require!(destination_registry != [0; 20], "destination registry is zero");
+        require!(signer_version > 0, "signer version is zero");
 
         Self {
             mpc_contract_id,
             authorized_submitter,
             foreign_tx_domain_id: DomainId(foreign_tx_domain_id),
+            sign_domain_id: DomainId(sign_domain_id),
             mpc_call_gas_tgas,
-            callback_gas_tgas,
+            foreign_callback_gas_tgas,
+            sign_call_gas_tgas,
+            signature_callback_gas_tgas,
             source_emitter,
             agreement_id,
             agreement_version,
@@ -100,13 +134,15 @@ impl AfterStateNearAdapter {
             max_amount,
             agreement_deadline,
             finality_policy_id,
+            destination_chain_id,
+            verifier_contract,
+            destination_registry,
+            signer_version,
         }
     }
 
-    /// Submit a candidate Base EVM log for MPC verification.
-    ///
-    /// Candidate fields are untrusted. The MPC contract independently checks
-    /// the transaction and extracted log against the expected payload hash.
+    /// Validate a SourcePayment candidate, ask MPC to verify its exact log,
+    /// then ask the separate Sign-purpose domain to sign the AfterState digest.
     pub fn verify_base_log(&self, candidate: BaseEvmLogCandidate) -> Promise {
         require!(
             env::predecessor_account_id() == self.authorized_submitter,
@@ -136,6 +172,27 @@ impl AfterStateNearAdapter {
             "incomplete source log identity"
         );
 
+        let fact = Eip712SourceFact {
+            source_chain_id: BASE_SEPOLIA_CHAIN_ID,
+            emitter: candidate.emitter,
+            event_schema: source_payment_topic0(),
+            agreement_id: payment.agreement_id,
+            source_block_hash: candidate.block_hash,
+            source_tx_hash: candidate.transaction_hash,
+            source_block_number: candidate.block_number,
+            log_index: candidate.log_index,
+            asset: payment.asset,
+            amount: payment.amount,
+            recipient: payment.recipient,
+            // This is the source event's block timestamp, authenticated in event data.
+            observed_at: payment.source_timestamp,
+            expires_at: self.agreement_deadline,
+            key_version: self.signer_version,
+            agreement_version: payment.agreement_version,
+            finality_policy_id: self.finality_policy_id,
+            nonce: payment.nonce,
+        };
+
         let request = build_base_foreign_tx_request(candidate, self.foreign_tx_domain_id)
             .unwrap_or_else(|_| env::panic_str("removed candidate log"));
         let expected_payload_hash = request
@@ -149,27 +206,64 @@ impl AfterStateNearAdapter {
             .verify_foreign_transaction(request)
             .then(
                 ext_self::ext(env::current_account_id())
-                    .with_static_gas(Gas::from_tgas(self.callback_gas_tgas))
-                    .on_foreign_tx_verified(expected_payload_hash),
+                    .with_static_gas(Gas::from_tgas(self.foreign_callback_gas_tgas))
+                    .on_foreign_tx_verified(expected_payload_hash, fact),
             )
     }
 
     pub fn on_foreign_tx_verified(
         &self,
         expected_payload_hash: Hash256,
+        fact: Eip712SourceFact,
         #[callback_result] result: Result<VerifyForeignTransactionResponse, PromiseError>,
-    ) -> VerifyForeignTransactionResponse {
-        require!(
-            env::predecessor_account_id() == env::current_account_id(),
-            "private callback"
-        );
+    ) -> Promise {
+        self.assert_private_callback();
         let response = result
             .unwrap_or_else(|_| env::panic_str("NEAR MPC ForeignTx verification failed"));
         require!(
             response.payload_hash == expected_payload_hash,
             "MPC returned unexpected payload hash"
         );
-        response
+
+        let digest = afterstate_eip712_digest(
+            &fact,
+            self.destination_chain_id,
+            self.verifier_contract,
+            self.destination_registry,
+        );
+        let sign_request = SignRequestArgs {
+            path: SIGN_PATH.to_string(),
+            payload: Payload::from_legacy_ecdsa(digest),
+            domain_id: self.sign_domain_id,
+        };
+
+        ext_mpc::ext(self.mpc_contract_id.clone())
+            .with_attached_deposit(NearToken::from_yoctonear(1))
+            .with_static_gas(Gas::from_tgas(self.sign_call_gas_tgas))
+            .sign(sign_request)
+            .then(
+                ext_self::ext(env::current_account_id())
+                    .with_static_gas(Gas::from_tgas(self.signature_callback_gas_tgas))
+                    .on_signature(),
+            )
+    }
+
+    pub fn on_signature(
+        &self,
+        #[callback_result] result: Result<SignatureResponse, PromiseError>,
+    ) -> Vec<u8> {
+        self.assert_private_callback();
+        let response = result.unwrap_or_else(|_| env::panic_str("Chain Signatures signing failed"));
+        mpc_signature_to_evm_bytes(response)
+            .unwrap_or_else(|_| env::panic_str("MPC signature is not a valid EVM signature"))
+            .to_vec()
+    }
+
+    fn assert_private_callback(&self) {
+        require!(
+            env::predecessor_account_id() == env::current_account_id(),
+            "private callback"
+        );
     }
 
     pub fn config(&self) -> AdapterConfig {
@@ -177,8 +271,11 @@ impl AfterStateNearAdapter {
             mpc_contract_id: self.mpc_contract_id.clone(),
             authorized_submitter: self.authorized_submitter.clone(),
             foreign_tx_domain_id: self.foreign_tx_domain_id,
+            sign_domain_id: self.sign_domain_id,
             mpc_call_gas_tgas: self.mpc_call_gas_tgas,
-            callback_gas_tgas: self.callback_gas_tgas,
+            foreign_callback_gas_tgas: self.foreign_callback_gas_tgas,
+            sign_call_gas_tgas: self.sign_call_gas_tgas,
+            signature_callback_gas_tgas: self.signature_callback_gas_tgas,
             source_emitter: self.source_emitter,
             agreement_id: self.agreement_id,
             agreement_version: self.agreement_version,
@@ -188,6 +285,10 @@ impl AfterStateNearAdapter {
             max_amount: self.max_amount,
             agreement_deadline: self.agreement_deadline,
             finality_policy_id: self.finality_policy_id,
+            destination_chain_id: self.destination_chain_id,
+            verifier_contract: self.verifier_contract,
+            destination_registry: self.destination_registry,
+            signer_version: self.signer_version,
         }
     }
 }
@@ -198,8 +299,11 @@ pub struct AdapterConfig {
     pub mpc_contract_id: AccountId,
     pub authorized_submitter: AccountId,
     pub foreign_tx_domain_id: DomainId,
+    pub sign_domain_id: DomainId,
     pub mpc_call_gas_tgas: u64,
-    pub callback_gas_tgas: u64,
+    pub foreign_callback_gas_tgas: u64,
+    pub sign_call_gas_tgas: u64,
+    pub signature_callback_gas_tgas: u64,
     pub source_emitter: [u8; 20],
     pub agreement_id: [u8; 32],
     pub agreement_version: u32,
@@ -209,4 +313,8 @@ pub struct AdapterConfig {
     pub max_amount: u128,
     pub agreement_deadline: u64,
     pub finality_policy_id: [u8; 32],
+    pub destination_chain_id: u64,
+    pub verifier_contract: [u8; 20],
+    pub destination_registry: [u8; 20],
+    pub signer_version: u32,
 }
