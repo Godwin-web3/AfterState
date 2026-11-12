@@ -1,0 +1,13 @@
+[package]
+name = "afterstate-near-adapter"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+afterstate-near-foreign-tx-fixtures = { path = "../foreign-tx-fixtures" }
+near-mpc-contract-interface = { git = "https://github.com/near/mpc", rev = "86e2cc4d124397ec81f436b11f48bf9b6dfd062e", package = "near-mpc-contract-interface" }
+near-sdk = "5.30.1"
