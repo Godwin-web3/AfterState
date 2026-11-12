@@ -12,7 +12,7 @@ contract AfterStateEIP712Verifier is IAfterStateVerifier {
     error InvalidSigner();
     error InvalidVersion();
     error VersionAlreadyConfigured();
-    error SignerRevoked();
+    error SignerAlreadyRevoked();
     error InvalidSignature();
 
     address public owner;
@@ -56,7 +56,7 @@ contract AfterStateEIP712Verifier is IAfterStateVerifier {
     function revokeSigner(uint32 version) external onlyOwner {
         address signer = signerAtVersion[version];
         if (signer == address(0)) revert InvalidVersion();
-        if (revokedVersion[version]) revert SignerRevoked();
+        if (revokedVersion[version]) revert SignerAlreadyRevoked();
         revokedVersion[version] = true;
         emit SignerRevoked(version, signer);
     }
