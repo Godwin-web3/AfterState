@@ -15,7 +15,7 @@ on:
         type: string
         default: ""
       adapter_account_id:
-        description: "Deployed AfterState NEAR adapter account (optional until deployed)"
+        description: "Intended or deployed AfterState NEAR adapter account ID (derives EVM signer before deployment)"
         required: false
         type: string
         default: ""
