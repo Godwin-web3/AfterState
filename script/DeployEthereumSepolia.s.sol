@@ -31,17 +31,23 @@ contract DeployEthereumSepolia is AfterStateDeployBase {
         address sourceEmitter = vm.envAddress("BASE_SEPOLIA_SOURCE_EMITTER");
         address recipient = vm.envAddress("DESTINATION_RECIPIENT");
         bytes32 agreementId = bytes32(vm.envUint("AGREEMENT_ID"));
-        uint128 minAmount = uint128(vm.envUint("MIN_AMOUNT"));
-        uint128 maxAmount = uint128(vm.envUint("MAX_AMOUNT"));
-        uint64 deadline = uint64(vm.envUint("AGREEMENT_DEADLINE"));
+        uint256 minAmountRaw = vm.envUint("MIN_AMOUNT");
+        uint256 maxAmountRaw = vm.envUint("MAX_AMOUNT");
+        uint256 deadlineRaw = vm.envUint("AGREEMENT_DEADLINE");
         uint256 prefundAmount = vm.envUint("DESTINATION_PREFUND_AMOUNT");
+        require(minAmountRaw > 0 && maxAmountRaw >= minAmountRaw, "invalid agreement amounts");
+        require(maxAmountRaw <= type(uint128).max, "maximum amount exceeds uint128");
+        require(deadlineRaw <= type(uint64).max, "deadline exceeds uint64");
+        uint128 minAmount = uint128(minAmountRaw);
+        uint128 maxAmount = uint128(maxAmountRaw);
+        uint64 deadline = uint64(deadlineRaw);
 
         require(expectedAsset != address(0), "expected asset is zero");
         require(signer != address(0), "MPC signer address is zero");
         require(sourceEmitter != address(0), "source emitter is zero");
         require(recipient != address(0), "destination recipient is zero");
         require(agreementId != bytes32(0), "agreement ID is zero");
-        require(minAmount > 0 && maxAmount >= minAmount, "invalid agreement amounts");
+        require(prefundAmount >= maxAmount, "destination escrow underfunded");
 
         vm.startBroadcast(privateKey);
         AfterStateDemoToken token = new AfterStateDemoToken(deployer);
