@@ -113,6 +113,27 @@ contract AfterStateSettlementTest {
         require(!ok, "unattested settlement succeeded");
     }
 
+    function testFailedSettlementDoesNotBurnAcceptedFact() public {
+        bytes32 nonce = keccak256("settlement-retry-after-failure");
+        _attest(nonce);
+        token.mint(address(settlement), 499);
+
+        (bool firstAttempt,) = address(settlement).call(
+            abi.encodeCall(AfterStateERC20Settlement.settleERC20, (AGREEMENT, nonce))
+        );
+        require(!firstAttempt, "underfunded settlement unexpectedly succeeded");
+        require(
+            !registry.settlementClaimed(
+                keccak256(abi.encode(block.chainid, address(registry), AGREEMENT, nonce))
+            ),
+            "failed settlement permanently claimed the source fact"
+        );
+
+        token.mint(address(settlement), 1);
+        settlement.settleERC20(AGREEMENT, nonce);
+        require(token.balanceOf(recipient) == 500, "retry did not deliver exact amount");
+    }
+
     function testSecondSettlementAdapterCannotClaimSameFact() public {
         bytes32 nonce = keccak256("settlement-nonce-rogue");
         _attest(nonce);
