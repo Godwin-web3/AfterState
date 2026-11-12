@@ -37,11 +37,15 @@ contract AfterStateRegistry {
     mapping(bytes32 => bool) public consumedSourceLogs;
     mapping(bytes32 => bool) public agreementEverCreated;
     mapping(bytes32 => IAfterStateVerifier.SourceFact) private acceptedFacts;
+    mapping(bytes32 => bool) public settlementClaimed;
+    address public settlementAdapter;
 
     event AgreementCreated(bytes32 indexed agreementId, uint256 sourceChainId, uint256 destinationChainId);
     event SourceFactConsumed(bytes32 indexed agreementId, bytes32 indexed nonce, bytes32 indexed sourceTxHash, uint256 logIndex);
     event VerifierUpdated(address indexed previousVerifier, address indexed newVerifier);
     event AgreementDeactivated(bytes32 indexed agreementId);
+    event SettlementAdapterUpdated(address indexed previousAdapter, address indexed newAdapter);
+    event AcceptedFactClaimed(bytes32 indexed agreementId, bytes32 indexed nonce, address indexed adapter);
 
     modifier onlyOwner() { if (msg.sender != owner) revert NotOwner(); _; }
 
@@ -82,7 +86,9 @@ contract AfterStateRegistry {
             || fact.expiresAt <= fact.observedAt) revert InvalidFact();
 
         bytes32 nonceKey = keccak256(abi.encode(block.chainid, address(this), fact.agreementId, fact.nonce));
-        bytes32 logKey = keccak256(abi.encode(fact.sourceChainId, fact.sourceBlockHash,
+        // The tx/log identity deliberately excludes blockHash: a transaction
+        // re-included after a reorg must not become a second consumable payment.
+        bytes32 logKey = keccak256(abi.encode(fact.sourceChainId,
             fact.sourceTxHash, fact.logIndex, fact.emitter));
         if (consumedNonces[nonceKey] || consumedSourceLogs[logKey]) revert FactAlreadyConsumed();
         if (!verifier.verify(fact, proof)) revert InvalidFact();
@@ -101,6 +107,28 @@ contract AfterStateRegistry {
     {
         bytes32 nonceKey = keccak256(abi.encode(block.chainid, address(this), agreementId, nonce));
         return (acceptedFacts[nonceKey], consumedNonces[nonceKey]);
+    }
+
+    function setSettlementAdapter(address newAdapter) external onlyOwner {
+        address previous = settlementAdapter;
+        settlementAdapter = newAdapter;
+        emit SettlementAdapterUpdated(previous, newAdapter);
+    }
+
+    /// @notice Atomically claims an accepted fact for the sole configured
+    /// settlement adapter. Prevents the same fact being paid by multiple
+    /// independently deployed settlement adapters.
+    function claimAcceptedFact(bytes32 agreementId, bytes32 nonce)
+        external
+        returns (IAfterStateVerifier.SourceFact memory fact)
+    {
+        if (msg.sender != settlementAdapter || settlementAdapter == address(0)) revert NotOwner();
+        bytes32 nonceKey = keccak256(abi.encode(block.chainid, address(this), agreementId, nonce));
+        if (!consumedNonces[nonceKey]) revert InvalidFact();
+        if (settlementClaimed[nonceKey]) revert FactAlreadyConsumed();
+        settlementClaimed[nonceKey] = true;
+        fact = acceptedFacts[nonceKey];
+        emit AcceptedFactClaimed(agreementId, nonce, msg.sender);
     }
 
     function deactivateAgreement(bytes32 agreementId) external onlyOwner {
