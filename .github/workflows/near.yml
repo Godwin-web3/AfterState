@@ -47,6 +47,10 @@ jobs:
           AGREEMENT_DEADLINE: "1893456000"
         run: |
           bash -n near/scripts/deploy-adapter.sh
+          if ADAPTER_ACCOUNT_ID=adapter.testnet DERIVED_FOR_ADAPTER_ACCOUNT_ID=other.testnet AUTHORIZED_SUBMITTER=submitter.testnet bash near/scripts/deploy-adapter.sh >/dev/null 2>&1; then
+            echo "mismatched adapter/signing account IDs were accepted"
+            exit 1
+          fi
           python3 -m py_compile near/scripts/build_adapter_init_args.py
           python3 near/scripts/build_adapter_init_args.py > /tmp/adapter-init-args.json
           jq -e '.foreign_tx_domain_id == 3 and .sign_domain_id == 0 and .destination_chain_id == 11155111 and (.source_emitter | length == 20) and .min_amount == 1' /tmp/adapter-init-args.json
