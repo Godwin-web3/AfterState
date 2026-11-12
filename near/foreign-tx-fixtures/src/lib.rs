@@ -308,3 +308,68 @@ pub fn afterstate_eip712_digest(
     digest_input.extend_from_slice(&struct_hash);
     keccak256(&digest_input)
 }
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EvmSignatureError {
+    WrongSignatureScheme,
+    InvalidRecoveryId,
+    InvalidRPoint,
+    InvalidRScalar,
+    InvalidSScalar,
+}
+
+const SECP256K1_ORDER: [u8; 32] = [
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe,
+    0xba, 0xae, 0xdc, 0xe6, 0xaf, 0x48, 0xa0, 0x3b,
+    0xbf, 0xd2, 0x5e, 0x8c, 0xd0, 0x36, 0x41, 0x41,
+];
+
+const SECP256K1_HALF_ORDER: [u8; 32] = [
+    0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    0x5d, 0x57, 0x6e, 0x73, 0x57, 0xa4, 0x50, 0x1d,
+    0xdf, 0xe9, 0x2f, 0x46, 0x68, 0x1b, 0x20, 0xa0,
+];
+
+fn is_zero(bytes: &[u8; 32]) -> bool {
+    bytes.iter().all(|byte| *byte == 0)
+}
+
+/// Convert NEAR MPC's recoverable secp256k1 response to Solidity's r||s||v.
+/// The EVM verifier requires v=27/28 and canonical low-s signatures.
+pub fn mpc_signature_to_evm_bytes(
+    response: near_mpc_contract_interface::types::SignatureResponse,
+) -> Result<[u8; 65], EvmSignatureError> {
+    use near_mpc_contract_interface::types::SignatureResponse;
+
+    let signature = match response {
+        SignatureResponse::Secp256k1(signature) => signature,
+        SignatureResponse::Ed25519 { .. } => {
+            return Err(EvmSignatureError::WrongSignatureScheme);
+        }
+    };
+
+    if signature.recovery_id > 1 {
+        return Err(EvmSignatureError::InvalidRecoveryId);
+    }
+    let point = signature.big_r.affine_point;
+    if point[0] != 0x02 && point[0] != 0x03 {
+        return Err(EvmSignatureError::InvalidRPoint);
+    }
+    let mut r = [0u8; 32];
+    r.copy_from_slice(&point[1..]);
+    if is_zero(&r) || r >= SECP256K1_ORDER {
+        return Err(EvmSignatureError::InvalidRScalar);
+    }
+    let s = signature.s.scalar;
+    if is_zero(&s) || s > SECP256K1_HALF_ORDER {
+        return Err(EvmSignatureError::InvalidSScalar);
+    }
+
+    let mut output = [0u8; 65];
+    output[..32].copy_from_slice(&r);
+    output[32..64].copy_from_slice(&s);
+    output[64] = 27 + signature.recovery_id;
+    Ok(output)
+}
