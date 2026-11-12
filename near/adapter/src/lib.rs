@@ -13,6 +13,9 @@ use near_sdk::{
 
 const BASE_SEPOLIA_CHAIN_ID: u64 = 84_532;
 const SIGN_PATH: &str = "afterstate-v1";
+// Live MPC testnet config v3.18.0 requires at least 15 Tgas for both
+// verify_foreign_transaction and sign calls.
+const MIN_MPC_REQUEST_GAS_TGAS: u64 = 15;
 
 #[allow(dead_code)]
 #[ext_contract(ext_mpc)]
@@ -101,9 +104,15 @@ impl AfterStateNearAdapter {
         // destination authorization.
         require!(foreign_tx_domain_id != sign_domain_id, "ForeignTx and Sign domains must be distinct");
         require!(mpc_contract_id != env::current_account_id(), "MPC contract cannot be the adapter itself");
-        require!(mpc_call_gas_tgas > 0, "MPC call gas must be non-zero");
+        require!(
+            mpc_call_gas_tgas >= MIN_MPC_REQUEST_GAS_TGAS,
+            "MPC ForeignTx call gas is below the live contract minimum"
+        );
         require!(foreign_callback_gas_tgas > 0, "ForeignTx callback gas must be non-zero");
-        require!(sign_call_gas_tgas > 0, "sign call gas must be non-zero");
+        require!(
+            sign_call_gas_tgas >= MIN_MPC_REQUEST_GAS_TGAS,
+            "MPC Sign call gas is below the live contract minimum"
+        );
         require!(signature_callback_gas_tgas > 0, "signature callback gas must be non-zero");
         require!(source_emitter != [0; 20], "source emitter is zero");
         require!(agreement_id != [0; 32], "agreement ID is zero");
@@ -343,6 +352,15 @@ mod adapter_tests {
     use std::str::FromStr;
 
     fn construct(foreign_domain: u64, sign_domain: u64) -> AfterStateNearAdapter {
+        construct_with_gas(foreign_domain, sign_domain, 20, 20)
+    }
+
+    fn construct_with_gas(
+        foreign_domain: u64,
+        sign_domain: u64,
+        foreign_call_gas: u64,
+        sign_call_gas: u64,
+    ) -> AfterStateNearAdapter {
         testing_env!(
             VMContextBuilder::new()
                 .current_account_id(AccountId::from_str("adapter.testnet").unwrap())
@@ -355,9 +373,9 @@ mod adapter_tests {
             AccountId::from_str("submitter.testnet").unwrap(),
             foreign_domain,
             sign_domain,
+            foreign_call_gas,
             20,
-            20,
-            20,
+            sign_call_gas,
             20,
             [1; 20],
             [2; 32],
@@ -386,5 +404,17 @@ mod adapter_tests {
     fn constructor_rejects_reusing_foreign_tx_domain_for_signing() {
         let result = catch_unwind(AssertUnwindSafe(|| construct(10, 10)));
         assert!(result.is_err(), "same MPC domain was accepted for both purposes");
+    }
+
+    #[test]
+    fn constructor_rejects_foreign_tx_gas_below_live_mpc_minimum() {
+        let result = catch_unwind(AssertUnwindSafe(|| construct_with_gas(10, 11, 14, 20)));
+        assert!(result.is_err(), "underfunded ForeignTx MPC call was accepted");
+    }
+
+    #[test]
+    fn constructor_rejects_sign_gas_below_live_mpc_minimum() {
+        let result = catch_unwind(AssertUnwindSafe(|| construct_with_gas(10, 11, 20, 14)));
+        assert!(result.is_err(), "underfunded Sign MPC call was accepted");
     }
 }
