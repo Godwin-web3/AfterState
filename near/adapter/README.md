@@ -24,7 +24,7 @@ The request builder, event decoder, EIP-712 digest and signature encoder live in
 - source_emitter, agreement_id/version, asset, recipient, min/max amount, agreement_deadline and finality_policy_id.
 - destination_chain_id, verifier_contract, destination_registry and signer_version.
 
-Both MPC calls attach 1 yoctoNEAR. Domain IDs, gas allocations, available chains, provider quorum and root keys must be read from live testnet state. Never copy domain IDs or gas values from a tutorial. Run the [NEAR MPC Testnet State workflow](https://github.com/Godwin-web3/AfterState/actions/workflows/near-mpc-state.yml); first run it with both inputs blank to inspect live domains and Base availability. After deploying the adapter, provide its account ID and the Sign domain ID to retrieve the derived public key and EVM address.
+Both MPC calls attach 1 yoctoNEAR. The live testnet contract currently requires at least 15 Tgas for each MPC request. The ForeignTx callback must exceed the combined Sign-call and final-callback budgets; the example uses 60 Tgas for that callback, 15 Tgas for Sign, and 30 Tgas for the final callback. Start the first `verify_base_log` transaction with 100 Tgas and measure actual usage. Domain IDs, gas allocations, available chains, provider quorum and root keys must be read from live testnet state. Never copy domain IDs or gas values from a tutorial. Run the [NEAR MPC Testnet State workflow](https://github.com/Godwin-web3/AfterState/actions/workflows/near-mpc-state.yml); first run it with both inputs blank to inspect live domains and Base availability. After deploying the adapter, provide its account ID and the Sign domain ID to retrieve the derived public key and EVM address.
 
 ## EVM signer configuration
 
