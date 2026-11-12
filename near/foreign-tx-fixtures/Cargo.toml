@@ -10,7 +10,7 @@ sha3 = "0.10.9"
 serde_json = "1"
 serde = { version = "1", features = ["derive"] }
 borsh = "1.8.1"
-near-mpc-contract-interface = { git = "https://github.com/near/mpc", rev = "86e2cc4d124397ec81f436b11f48bf9b6dfd062e", package = "near-mpc-contract-interface" }
+near-mpc-contract-interface = { git = "https://github.com/near/mpc", rev = "e691bdb98d68dcf74653da58d043453a6318765f", package = "near-mpc-contract-interface" }
 
 [dev-dependencies]
 bs58 = "0.5"
