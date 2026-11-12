@@ -54,6 +54,25 @@ The demo must use two different EVM chains or it is not a cross-chain execution 
 
 This prototype requires matching source/destination asset addresses and amount units. It does not bridge assets or convert decimals. The same token address on both networks is a demo constraint, not an asset-bridging mechanism.
 
+Deployment scripts are provided in `script/DeployBaseSepolia.s.sol` and `script/DeployEthereumSepolia.s.sol`. Start from `.env.example`, copy it to an ignored local `.env`, and fill in real testnet values. The deployer key must be the same on both chains, and `TOKEN_DEPLOYER_NONCE` must match the deployer's current nonce on both networks.
+
+```sh
+set -a
+source .env
+set +a
+
+# First deploy the source token and emitter. Save the returned token and emitter addresses.
+forge script script/DeployBaseSepolia.s.sol:DeployBaseSepolia \
+  --rpc-url "$BASE_SEPOLIA_RPC_URL" --broadcast
+
+# Fill EXPECTED_ASSET_ADDRESS and BASE_SEPOLIA_SOURCE_EMITTER with the first deployment's addresses.
+# Fill AFTERSTATE_MPC_SIGNER_ADDRESS with the derived address from the live NEAR query.
+forge script script/DeployEthereumSepolia.s.sol:DeployEthereumSepolia \
+  --rpc-url "$ETHEREUM_SEPOLIA_RPC_URL" --broadcast
+```
+
+The destination script checks the expected token address, signer, chain ID, amount bounds, deadline width, and escrow prefunding before broadcasting. Keep `.env`, broadcast output, private keys, and seed phrases out of Git.
+
 ## 4. Deploy the NEAR adapter
 
 Deploy the release WASM to a dedicated NEAR testnet account. Initialize it with the live MPC account, dedicated authorized submitter, distinct live ForeignTx and Sign domain IDs, measured gas values, source emitter and agreement fields, destination chain/verifier/registry addresses, finality-policy identifier, and EVM signer version.
