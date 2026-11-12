@@ -36,6 +36,8 @@ Before deploying the EVM verifier, choose the NEAR account ID that will host the
 
 Run [NEAR MPC Testnet State](https://github.com/Godwin-web3/AfterState/actions/workflows/near-mpc-state.yml) manually with `adapter_account_id` set to that intended account. Leave domain inputs blank so the workflow discovers the live domains. Copy `derived_evm_address` from the report into `AFTERSTATE_MPC_SIGNER_ADDRESS` for the destination deployment.
 
+For the intended account `b6739911d06797c8d55539944a5226d132c2001e34d7bf38993e735954b162d3`, the account-specific query already derived `AFTERSTATE_MPC_SIGNER_ADDRESS=0x5073ec8a42ad4dad872fc593de1009ce728a088f` on 2026-11-12. Evidence: [workflow run 43249688456](https://github.com/Godwin-web3/AfterState/actions/runs/43249688456). This is the MPC signing address, not the EVM deployer wallet address. Re-query before deploying.
+
 ## 3. Deploy the EVM source and destination sides
 
 The demo must use two different EVM chains or it is not a cross-chain execution demonstration:
