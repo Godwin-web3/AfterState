@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "ethers": "6.15.0",
-    "near-seed-phrase": "0.2.1"
+    "near-seed-phrase": "0.2.1",
+    "bs58": "6.0.0"
   },
   "engines": {
     "node": ">=20"
