@@ -1,8 +1,10 @@
 # Security Review — Initial EVM Reference
 
-Status: design review notes; no external audit. The contracts are experimental.
+Status: initial implementation review; no external audit. The EVM contracts are experimental.
 
-## Implemented controls
+## Verified implementation
+
+The Foundry CI run on commit 2a567b12ab4eb5b1c3fa37a65a25431b3729944a compiled Solidity 0.8.24 and passed all 15 tests (11 registry/verifier tests and 4 settlement tests). This is a narrow unit-test baseline, not a security audit or proof of production readiness.
 
 - EIP-712 domain binds signatures to chain ID and verifier contract.
 - Typed fact binds source chain, emitter, schema, agreement, block/transaction/log identity, asset, amount, recipient, timestamps, key version, agreement version, finality-policy ID, nonce and destination registry.
@@ -16,17 +18,17 @@ Status: design review notes; no external audit. The contracts are experimental.
 ## Important limitations
 
 1. The EIP-712 verifier authenticates an authorized signer only. It does not prove that the source-chain observation is true.
-2. `finalityPolicyId` is signed metadata. It is not an on-chain finality proof.
+2. finalityPolicyId is signed metadata. It is not an on-chain finality proof.
 3. The current settlement adapter pays from pre-funded destination inventory. It does not atomically lock or refund the source-chain payment.
 4. The adapter supports conventional boolean-returning ERC-20s. Fee-on-transfer, rebasing, malicious, or non-standard tokens may fail or behave unexpectedly. Asset allowlisting and token-specific review are required.
 5. The registry owner controls agreements, verifier replacement and settlement-adapter replacement. Production deployment needs governance/timelock or a constrained immutable configuration.
 6. The source-chain event schema is represented by a topic/schema hash and must be decoded/validated exactly by the attestation producer.
 7. Reorg handling depends on the source-observation system's finality policy. Preventing duplicate log identity does not prove finality.
-8. The implementation has not yet been compiled, fuzzed, or run through Foundry CI in this environment.
+8. The NEAR adapter, exact Borsh payload builder, MPC callbacks and Chain Signatures EIP-712 signing step are not implemented.
 
 ## Fixed during implementation
 
-- Agreement IDs could initially be reused after deactivation. Added a permanent `agreementEverCreated` guard.
+- Agreement IDs could initially be reused after deactivation. Added a permanent agreementEverCreated guard.
 - An accepted fact could initially be paid by multiple independently deployed settlement adapters. Added a single configured adapter and registry-level one-time claim.
 - Source-log replay identity initially included block hash. Removed block hash from the replay key to prevent re-inclusion from creating a second consumable identity.
 - The registry initially allowed zero-address assets even though the settlement adapter only supports ERC-20. Zero-address assets are now rejected at agreement creation.
@@ -38,4 +40,13 @@ Status: design review notes; no external audit. The contracts are experimental.
 - Adapter replacement and owner compromise assumptions are documented and tested.
 - Signer rotation/revocation edge cases and malformed ECDSA signatures.
 - Fuzz source facts across all agreement fields and timestamps.
-- Verify the exact NEAR ForeignTx MPC signature and payload-to-EIP712 bridge.
+- Byte-for-byte Borsh payload hash fixtures against a pinned NEAR MPC release.
+- End-to-end NEAR testnet tests for wrong payload hash, malformed/missing/removed log, wrong log index, non-finalized receipt, provider-quorum failure and callback timeout.
+- Verify that the NEAR contract uses a fixed derivation path and never signs arbitrary caller-supplied digests.
+
+## NEAR integration references
+
+- https://github.com/near/mpc
+- https://github.com/near/mpc/blob/main/crates/contract/src/api/foreign_chain/requests.rs
+- https://github.com/near/mpc/blob/main/crates/near-mpc-contract-interface/src/types/foreign_chain/chains/evm.rs
+- https://github.com/near/mpc/blob/main/crates/near-mpc-contract-interface/src/types/foreign_chain/sign_payload.rs
