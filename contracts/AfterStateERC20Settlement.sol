@@ -27,6 +27,7 @@ contract AfterStateERC20Settlement {
     error InvalidSettlementAsset();
     error InvalidRecipient();
     error InvalidAmount();
+    error FactExpired();
     error TransferFailed();
     error PostconditionFailed();
 
@@ -65,6 +66,7 @@ contract AfterStateERC20Settlement {
         (IAfterStateVerifier.SourceFact memory fact, bool exists) =
             registry.getAcceptedFact(agreementId, nonce);
         if (!exists) revert FactNotAccepted();
+        if (block.timestamp > fact.expiresAt) revert FactExpired();
         if (fact.asset == address(0)) revert InvalidSettlementAsset();
         if (fact.recipient == address(0)) revert InvalidRecipient();
         if (fact.amount == 0) revert InvalidAmount();
