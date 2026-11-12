@@ -15,6 +15,7 @@ The frontend's reference path is:
 ## Wallet and network behavior
 
 - NEAR wallet integration uses `@hot-labs/near-connect` with the testnet wallet feature filter.
+- NEAR Connect isolates wallet integrations in sandboxed iframes, but wallet executors are maintained by wallet providers and remain a supply-chain dependency. Verify the selected wallet and every transaction's receiver, method, and arguments before approval.
 - NEAR RPC reads use the public testnet JSON-RPC endpoint. No NEAR private key is stored by the app.
 - EVM transactions are signed by the connected EIP-1193 wallet. No EVM private key is stored by the app.
 - The adapter account must already be deployed and initialized. Its `authorized_submitter` must be the connected NEAR account.
