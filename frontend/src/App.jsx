@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { BrowserProvider, JsonRpcProvider, id, randomBytes, hexlify, parseUnits } from 'ethers';
+import React, { useEffect, useRef, useState } from 'react';
+import { BrowserProvider, JsonRpcProvider, Interface, id, randomBytes, hexlify, parseUnits } from 'ethers';
+import { NearConnector } from '@hot-labs/near-connect';
+import { bytesToHex, extractEvmSignature, extractNearTxHash, fixedBytes, readAdapterConfig, waitForNearOutcome } from './near';
 import { Activity, ArrowDownLeft, ArrowRight, ArrowUpRight, BadgeCheck, Check, CheckCircle2, ChevronDown, CircleAlert, Code2, Copy, ExternalLink, FileCheck2, Fingerprint, Gauge, Layers3, Menu, Plus, RadioTower, RefreshCw, Settings2, Shield, Wallet, X, Zap } from 'lucide-react';
 import { CHAINS, DEFAULT_CONFIG, REGISTRY_ABI, SOURCE_ABI, TOKEN_ABI, SETTLEMENT_ABI, compact, validAddress } from './protocol';
 
@@ -11,6 +13,8 @@ export default function App() {
   const [config,setConfig] = useState(() => ({...DEFAULT_CONFIG,...read('afterstate:config',{})}));
   const [account,setAccount] = useState('');
   const [chainId,setChainId] = useState(0);
+  const [nearAccount,setNearAccount] = useState('');
+  const nearConnector = useRef(null);
   const [busy,setBusy] = useState('');
   const [toast,setToast] = useState(null);
   const [form,setForm] = useState(empty);
@@ -36,6 +40,29 @@ export default function App() {
     window.ethereum.on?.('chainChanged',chain);
     return () => { window.ethereum.removeListener?.('accountsChanged',accounts); window.ethereum.removeListener?.('chainChanged',chain); };
   },[]);
+
+  useEffect(() => {
+    const connector = new NearConnector({ network:'testnet', features:{ testnet:true, signAndSendTransaction:true }, footerBranding:null });
+    nearConnector.current = connector;
+    const onSignIn = event => setNearAccount(event?.accounts?.[0]?.accountId || '');
+    const onSignOut = () => setNearAccount('');
+    connector.on('wallet:signIn', onSignIn);
+    connector.on('wallet:signOut', onSignOut);
+    return () => {
+      connector.off?.('wallet:signIn', onSignIn);
+      connector.off?.('wallet:signOut', onSignOut);
+    };
+  },[]);
+
+  async function connectNear() {
+    try {
+      await nearConnector.current.connect();
+      const wallet = await nearConnector.current.wallet();
+      const accounts = await wallet.getAccounts?.();
+      if (accounts?.[0]?.accountId) setNearAccount(accounts[0].accountId);
+      else if (typeof accounts?.[0] === 'string') setNearAccount(accounts[0]);
+    } catch(e) { notify('error','NEAR connection failed',e.message || 'Wallet connection was not completed.'); }
+  }
 
   async function connect() {
     if (!window.ethereum) return notify('warning','Wallet not detected','Open this app inside MetaMask Mobile, Coinbase Wallet, or another EIP-1193 wallet browser.');
@@ -137,6 +164,124 @@ export default function App() {
     finally { setBusy(''); }
   }
 
+
+  async function verifyWithNear(a) {
+    if (!nearAccount) return notify('warning','Connect NEAR wallet','Connect the NEAR testnet account configured as the adapter authorized submitter.');
+    if (!account) return notify('warning','Connect EVM wallet','Connect the EVM wallet that will submit the accepted fact on Ethereum Sepolia.');
+    if (!a.sourceTx || !a.nonce) return notify('warning','Source payment missing','This agreement has no confirmed source payment.');
+    if (!validNearAccountId(config.nearAdapterAccount)) return notify('warning','Invalid adapter account','Enter the deployed NEAR testnet adapter account ID.');
+    setBusy('verify');
+    try {
+      const adapter = config.nearAdapterAccount.trim();
+      const adapterConfig = await readAdapterConfig(adapter);
+      if (adapterConfig.authorized_submitter !== nearAccount) {
+        throw new Error('Connected NEAR account is not the adapter authorized_submitter. Expected ' + adapterConfig.authorized_submitter);
+      }
+      const asHex = bytes => '0x' + bytes.map(v=>Number(v).toString(16).padStart(2,'0')).join('');
+      const sourceEmitter = asHex(adapterConfig.source_emitter);
+      const agreementId = asHex(adapterConfig.agreement_id);
+      const asset = asHex(adapterConfig.asset);
+      const recipient = asHex(adapterConfig.recipient);
+      if (sourceEmitter.toLowerCase() !== config.sourceEmitter.toLowerCase()
+        || agreementId.toLowerCase() !== a.id.toLowerCase()
+        || asset.toLowerCase() !== config.sourceToken.toLowerCase()
+        || recipient.toLowerCase() !== a.recipient.toLowerCase()
+        || Number(adapterConfig.agreement_version) !== 1
+        || Number(adapterConfig.destination_chain_id) !== CHAINS.destination.id
+        || asHex(adapterConfig.destination_registry).toLowerCase() !== config.destinationRegistry.toLowerCase()) {
+        throw new Error('Deployed adapter configuration does not match this agreement and frontend contract configuration.');
+      }
+
+      const sourceProvider = new JsonRpcProvider(CHAINS.base.rpc);
+      const receipt = await sourceProvider.getTransactionReceipt(a.sourceTx);
+      if (!receipt || receipt.status !== 1) throw new Error('The source payment receipt is missing or reverted.');
+      const sourceInterface = new Interface(SOURCE_ABI);
+      const log = receipt.logs.find(item => {
+        if (item.address.toLowerCase() !== config.sourceEmitter.toLowerCase() || item.topics[0]?.toLowerCase() !== SOURCE_SCHEMA.toLowerCase()) return false;
+        try {
+          const parsed = sourceInterface.parseLog(item);
+          return parsed.args.agreementId.toLowerCase() === a.id.toLowerCase()
+            && parsed.args.nonce.toLowerCase() === a.nonce.toLowerCase();
+        } catch { return false; }
+      });
+      if (!log) throw new Error('Could not find the exact SourcePayment log for this agreement and nonce.');
+      const parsed = sourceInterface.parseLog(log);
+      const amount = BigInt(parsed.args.amount);
+      if (amount < BigInt(adapterConfig.min_amount) || amount > BigInt(adapterConfig.max_amount)) throw new Error('Source event amount is outside the adapter agreement bounds.');
+      if (BigInt(adapterConfig.agreement_deadline) !== BigInt(a.deadline)) throw new Error('Adapter deadline does not match the registered agreement.');
+      const candidate = {
+        transaction_hash: fixedBytes(receipt.hash,32),
+        block_hash: fixedBytes(receipt.blockHash,32),
+        block_number: Number(receipt.blockNumber),
+        transaction_index: Number(receipt.index),
+        log_index: Number(log.index),
+        emitter: fixedBytes(log.address,20),
+        removed: false,
+        data: log.data,
+        topics: log.topics.map(topic=>fixedBytes(topic,32))
+      };
+
+      const wallet = await nearConnector.current.wallet();
+      notify('info','Submitting source log to NEAR MPC','Approve the verification request in your NEAR wallet. The adapter requests finalized ForeignTx verification, followed by a separate EVM signature.');
+      const submitted = await wallet.signAndSendTransaction({
+        receiverId: adapter,
+        actions: [{
+          type:'FunctionCall',
+          params:{
+            methodName:'verify_base_log',
+            args:candidate,
+            gas:'100000000000000',
+            deposit:'0'
+          }
+        }]
+      });
+      const nearTxHash = extractNearTxHash(submitted);
+      if (!nearTxHash) throw new Error('The wallet did not return a NEAR transaction hash. If it redirected for approval, return to this page after wallet approval and retry.');
+      notify('info','NEAR MPC verification running','Transaction '+nearTxHash.slice(0,12)+'… submitted. Waiting for ForeignTx and Chain Signatures callbacks.');
+      const outcome = await waitForNearOutcome(nearTxHash,nearAccount);
+      const signature = extractEvmSignature(outcome);
+      if (!/^0x[0-9a-fA-F]{130}$/.test(signature)) throw new Error('Adapter returned an invalid EVM signature encoding.');
+
+      const finalityPolicyId = asHex(adapterConfig.finality_policy_id);
+      const fact = [
+        CHAINS.base.id,
+        log.address,
+        SOURCE_SCHEMA,
+        parsed.args.agreementId,
+        receipt.blockHash,
+        receipt.hash,
+        BigInt(receipt.blockNumber),
+        BigInt(log.index),
+        parsed.args.asset,
+        amount,
+        parsed.args.recipient,
+        BigInt(parsed.args.sourceTimestamp),
+        BigInt(adapterConfig.agreement_deadline),
+        Number(adapterConfig.signer_version),
+        Number(parsed.args.agreementVersion),
+        finalityPolicyId,
+        parsed.args.nonce
+      ];
+      await switchTo('destination');
+      const evmProvider = new BrowserProvider(window.ethereum);
+      const signer = await evmProvider.getSigner();
+      const registry = new (await import('ethers')).Contract(config.destinationRegistry,REGISTRY_ABI,signer);
+      const verifierAddress = await registry.verifier();
+      const configuredVerifier = asHex(adapterConfig.verifier_contract);
+      if (verifierAddress.toLowerCase() !== configuredVerifier.toLowerCase()) {
+        throw new Error('Destination verifier does not match the verifier bound into the NEAR MPC signature.');
+      }
+      notify('info','Submitting accepted fact','MPC signature received. Submit the signed fact to the Ethereum Sepolia registry.');
+      const consumeTx = await registry.consumeSourceFact(fact,signature);
+      const consumeReceipt = await consumeTx.wait();
+      saveAgreements(agreements.map(x => x.id===a.id ? {...x,status:'verified',nearTx:nearTxHash,verifyTx:consumeReceipt.hash} : x));
+      addEvent({type:'verification',title:'NEAR MPC fact accepted',detail:'Finalized Base log authenticated and accepted by Ethereum registry · '+compact(a.id),hash:consumeReceipt.hash,chain:'destination'});
+      notify('success','Source fact accepted','NEAR MPC returned a valid signature and the destination registry accepted the exact source fact.');
+    } catch(e) {
+      notify('error','NEAR verification failed',e.shortMessage || e.reason || e.message || 'The verification flow did not complete.');
+    } finally { setBusy(''); }
+  }
+
   async function checkFact(a) {
     setBusy('check');
     try {
@@ -218,7 +363,7 @@ export default function App() {
       <div className="sidebar-bottom"><div className="side-network"><span/> <div><b>Testnet environment</b><small>Base ↔ Ethereum Sepolia</small></div></div><small className="side-disclaimer"><Shield size={13}/> Experimental · unaudited</small></div>
     </aside>
     <main>
-      <header className="topbar"><div className="crumb"><button className="menu" onClick={()=>setMobile(true)}><Menu size={18}/></button><span>Workspace</span><i>/</i><b>{title}</b></div><div className="top-actions"><span className="testnet"><i/> TESTNET</span>{account?<button className="wallet connected" onClick={()=>notify('info','Wallet connected',account+' · chain '+chainId)}><span/>{compact(account,5)} <ChevronDown size={13}/></button>:<button className="wallet" onClick={connect} disabled={busy==='connect'}><Wallet size={14}/>{busy==='connect'?'Connecting…':'Connect wallet'}</button>}</div></header>
+      <header className="topbar"><div className="crumb"><button className="menu" onClick={()=>setMobile(true)}><Menu size={18}/></button><span>Workspace</span><i>/</i><b>{title}</b></div><div className="top-actions"><span className="testnet"><i/> TESTNET</span><button className={'wallet '+(nearAccount?'connected':'')} onClick={connectNear} title={nearAccount || 'Connect NEAR testnet wallet'}>{nearAccount?'NEAR '+nearAccount.slice(0,8)+'…':'Connect NEAR'}</button>{account?<button className="wallet connected" onClick={()=>notify('info','Wallet connected',account+' · chain '+chainId)}><span/>{compact(account,5)} <ChevronDown size={13}/></button>:<button className="wallet" onClick={connect} disabled={busy==='connect'}><Wallet size={14}/>{busy==='connect'?'Connecting…':'Connect wallet'}</button>}</div></header>
       <div className="content">
         {page==='overview' && <>
           <div className="heading"><div><label className="eyebrow">CROSS-CHAIN EXECUTION LAYER</label><h1>Make outcomes <em>verifiable.</em></h1><p>Bind a source-chain event to a destination action—with cryptographic verification and explicit postconditions.</p></div><button className="primary" onClick={()=>setPage('agreements')}><Plus size={15}/> New agreement</button></div>
@@ -227,7 +372,7 @@ export default function App() {
           <div className="columns"><section className="panel"><PanelTitle title="Recent execution activity" sub="Transactions initiated through this interface." action="View all" onAction={()=>setPage('activity')}/>{events.length?<div className="event-list">{events.slice(0,5).map(e=><EventRow key={e.id} event={e}/>)}</div>:<Empty icon={Activity} title="No activity yet" text="Register an agreement and submit a source payment to begin tracking execution." action="Create agreement" onClick={()=>setPage('agreements')}/>}</section><section className="panel"><PanelTitle title="Protocol readiness" sub="Contract configuration in this browser."/><div className="readiness"><b>{setupCount}<small>/5</small></b><div><strong>{setupCount===5?'Addresses configured':'Deployment setup'}</strong><span>Contract addresses supplied</span></div></div><div className="checks">{[['Source token',config.sourceToken],['Source emitter',config.sourceEmitter],['Destination token',config.destinationToken],['Destination registry',config.destinationRegistry],['Settlement adapter',config.destinationSettlement]].map(([l,v])=><div key={l}><span className={validAddress(v)?'checked':''}>{validAddress(v)?<Check size={10}/>:''}</span>{l}<small>{validAddress(v)?'Added':'Missing'}</small></div>)}</div><button className="secondary full" onClick={()=>setPage('setup')}>Configure contracts <ArrowRight size={13}/></button></section></div>
           <Notice/>
         </>}
-        {page==='agreements' && <><div className="heading"><div><label className="eyebrow">AGREEMENT MANAGEMENT</label><h1>Execution <em>agreements.</em></h1><p>Define the source event constraints before a payment is made.</p></div><button className="secondary" onClick={mintDemo} disabled={busy==='mint'}><Zap size={14}/>{busy==='mint'?'Minting…':'Mint demo tokens'}</button></div><div className="agreement-layout"><section className="panel create"><PanelTitle title="Create an agreement" sub="Registered on Ethereum Sepolia. Registry owner authorization required."/><form onSubmit={createAgreement}><Field label="Destination recipient" value={form.recipient} onChange={v=>setForm({...form,recipient:v})} placeholder="0x…"/><div className="field-row"><Field label="Minimum amount" value={form.min} onChange={v=>setForm({...form,min:v})} type="number"/><Field label="Maximum amount" value={form.max} onChange={v=>setForm({...form,max:v})} type="number"/></div><Field label="Agreement deadline" value={form.deadline} onChange={v=>setForm({...form,deadline:v})} type="datetime-local"/><div className="form-summary"><span>Source · Base Sepolia (84532)</span><span>Destination · Ethereum Sepolia (11155111)</span><span>Event schema · SourcePayment v1</span></div><button className="primary full" type="submit" disabled={busy==='create'||!account||!ready}>{busy==='create'?'Registering…':<><Plus size={15}/> Register agreement</>}</button>{!account&&<small className="hint">Connect the registry-owner wallet first.</small>}{!ready&&<small className="hint">Finish Network setup. v0.1 requires the same ERC-20 address on both EVM chains.</small>}</form></section><section className="panel"><PanelTitle title={'Your agreements · '+agreements.length} sub="Progress is shown as separate protocol milestones."/>{agreements.length?<div className="agreement-list">{agreements.map(a=><Agreement key={a.id} a={a} busy={busy} pay={()=>paySource(a)} check={()=>checkFact(a)} settle={()=>settle(a)}/>)}</div>:<Empty icon={Layers3} title="No agreements registered" text="Create an agreement to define the exact source event and destination constraints."/ >}</section></div><Notice/></>}
+        {page==='agreements' && <><div className="heading"><div><label className="eyebrow">AGREEMENT MANAGEMENT</label><h1>Execution <em>agreements.</em></h1><p>Define the source event constraints before a payment is made.</p></div><button className="secondary" onClick={mintDemo} disabled={busy==='mint'}><Zap size={14}/>{busy==='mint'?'Minting…':'Mint demo tokens'}</button></div><div className="agreement-layout"><section className="panel create"><PanelTitle title="Create an agreement" sub="Registered on Ethereum Sepolia. Registry owner authorization required."/><form onSubmit={createAgreement}><Field label="Destination recipient" value={form.recipient} onChange={v=>setForm({...form,recipient:v})} placeholder="0x…"/><div className="field-row"><Field label="Minimum amount" value={form.min} onChange={v=>setForm({...form,min:v})} type="number"/><Field label="Maximum amount" value={form.max} onChange={v=>setForm({...form,max:v})} type="number"/></div><Field label="Agreement deadline" value={form.deadline} onChange={v=>setForm({...form,deadline:v})} type="datetime-local"/><div className="form-summary"><span>Source · Base Sepolia (84532)</span><span>Destination · Ethereum Sepolia (11155111)</span><span>Event schema · SourcePayment v1</span></div><button className="primary full" type="submit" disabled={busy==='create'||!account||!ready}>{busy==='create'?'Registering…':<><Plus size={15}/> Register agreement</>}</button>{!account&&<small className="hint">Connect the registry-owner wallet first.</small>}{!ready&&<small className="hint">Finish Network setup. v0.1 requires the same ERC-20 address on both EVM chains.</small>}</form></section><section className="panel"><PanelTitle title={'Your agreements · '+agreements.length} sub="Progress is shown as separate protocol milestones."/>{agreements.length?<div className="agreement-list">{agreements.map(a=><Agreement key={a.id} a={a} busy={busy} pay={()=>paySource(a)} check={()=>verifyWithNear(a)} settle={()=>settle(a)}/>)}</div>:<Empty icon={Layers3} title="No agreements registered" text="Create an agreement to define the exact source event and destination constraints."/ >}</section></div><Notice/></>}
         {page==='activity' && <><div className="heading"><div><label className="eyebrow">AUDIT TRAIL</label><h1>Execution <em>activity.</em></h1><p>Local transaction index. Block explorer links are the transaction source of truth.</p></div><button className="secondary" onClick={()=>saveEvents([])} disabled={!events.length}>Clear local history</button></div><section className="panel"><PanelTitle title="Transaction history" sub="This history is stored locally in this browser."/><div className="event-list">{events.length?events.map(e=><EventRow key={e.id} event={e}/>):<Empty icon={Activity} title="Nothing recorded yet" text="Agreement, payment, and settlement activity will appear here."/>}</div></section></>}
         {page==='setup' && <><div className="heading"><div><label className="eyebrow">DEPLOYMENT CONFIGURATION</label><h1>Network <em>setup.</em></h1><p>Connect the interface to deployed reference contracts. Values are stored in this browser only.</p></div><button className="secondary" onClick={refreshNetwork} disabled={network.loading}><RefreshCw size={14}/> Refresh on-chain state</button></div><div className="setup-grid"><section className="panel"><PanelTitle title="Contract addresses" sub="Paste addresses after the EVM deployment is complete."/><Settings config={config} save={saveConfig}/></section><section className="panel"><PanelTitle title="Destination registry state" sub="Read-only values from Ethereum Sepolia."/><div className="live-label"><i/> {network.loading?'CHECKING':'RPC READ'}</div>{network.error?<p className="error-text"><CircleAlert size={15}/>{network.error}</p>:<div className="state">{[['Registry owner',network.owner],['Verifier',network.verifier],['Settlement adapter',network.adapter],['Token',network.symbol+' · '+network.decimals+' decimals']].map(([k,v])=><State key={k} label={k} value={v}/>)}</div>}<div className="adapter"><RadioTower size={17}/><div><b>NEAR testnet adapter account</b><code>{config.nearAdapterAccount}</code><small>Public account ID. Adapter deployment must be verified separately.</small></div></div><button className="secondary full" onClick={fundSettlement} disabled={!validAddress(config.destinationSettlement)||busy==='fund'}><ArrowDownLeft size={14}/>{busy==='fund'?'Funding…':'Pre-fund destination settlement'}</button></section></div><Notice/></>}
       </div>
@@ -237,7 +382,7 @@ export default function App() {
   </div>;
 }
 
-function LockKeyholeIcon(){return <Shield size={13}/>}
+function validNearAccountId(value){return typeof value==='string' && (/^[a-f0-9]{64}$/i.test(value) || /^[a-z0-9_-]+(\\.[a-z0-9_-]+)*$/.test(value));}\nfunction LockKeyholeIcon(){return <Shield size={13}/>}
 function Chain({mark,name,detail,kind}){return <div className="chain"><i className={kind}>{mark}</i><div><b>{name}</b><small>{detail}</small></div></div>}
 function Connector({label}){return <div className="connector"><i/><small>{label}</small></div>}
 function Metric({label,value,note}){return <div className="metric"><span>{label}</span><b>{value}</b><small>{note}</small></div>}
@@ -248,4 +393,4 @@ function EventRow({event}){const chain=event.chain==='base'?CHAINS.base:CHAINS.d
 function Field({label,value,onChange,type='text',placeholder=''}){return <label className="field"><span>{label}</span><input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} spellCheck="false"/></label>}
 function Settings({config,save}){const [draft,setDraft]=useState(config);useEffect(()=>setDraft(config),[config]);const fields=[['sourceToken','Base Sepolia · demo token'],['sourceEmitter','Base Sepolia · source emitter'],['destinationToken','Ethereum Sepolia · token (same address required)'],['destinationRegistry','Ethereum Sepolia · registry'],['destinationSettlement','Ethereum Sepolia · settlement adapter']];return <form className="settings" onSubmit={e=>{e.preventDefault();save(draft);}}>{fields.map(([k,l])=><Field key={k} label={l} value={draft[k]} onChange={v=>setDraft({...draft,[k]:v.trim()})} placeholder="0x…"/>)}<Field label="NEAR testnet adapter account" value={draft.nearAdapterAccount} onChange={v=>setDraft({...draft,nearAdapterAccount:v.trim()})}/><small>Never enter a seed phrase, private key, or signing password here.</small><button className="primary" type="submit"><Check size={14}/> Save configuration</button></form>}
 function State({label,value}){return <div className="state-row"><span>{label}</span><code>{value||'—'}</code>{value&&value.startsWith('0x')&&<button onClick={()=>navigator.clipboard?.writeText(value)}><Copy size={12}/></button>}</div>}
-function Agreement({a,busy,pay,check,settle}){const steps=['Agreement','Source event','Verified','Outcome'];const n=a.status==='settled'?4:a.status==='verified'?3:a.status==='source-paid'?2:1;return <article className="agreement"><div className="agreement-top"><div><b>{compact(a.id,8)}</b><small>Recipient {compact(a.recipient,5)}</small></div><span className={'pill '+a.status}>{a.status==='source-paid'?'Source paid':a.status==='verified'?'Fact verified':a.status==='settled'?'Outcome enforced':'Agreement active'}</span></div><div className="steps">{steps.map((s,i)=><div className={i<n?'done':''} key={s}><i/>{s}</div>)}</div><div className="agreement-bottom"><div><b>{a.min}–{a.max} {a.symbol||'ASD'}</b><small>Deadline {new Date(a.deadline*1000).toLocaleDateString()}</small></div><div className="actions">{a.status==='registered'&&<button onClick={pay} disabled={busy==='pay'}>{busy==='pay'?'Paying…':'Pay on Base'}</button>}{a.status==='source-paid'&&<button onClick={check} disabled={busy==='check'}>{busy==='check'?'Checking…':'Check verification'}</button>}{a.status==='verified'&&<button onClick={settle} disabled={busy==='settle'}>{busy==='settle'?'Settling…':'Enforce outcome'}</button>}</div></div>{a.sourceTx&&<small className="tx-link">Source transaction <a href={CHAINS.base.explorer+'/tx/'+a.sourceTx} target="_blank" rel="noreferrer">{compact(a.sourceTx,7)} <ExternalLink size={10}/></a></small>}</article>}
+function Agreement({a,busy,pay,check,settle}){const steps=['Agreement','Source event','Verified','Outcome'];const n=a.status==='settled'?4:a.status==='verified'?3:a.status==='source-paid'?2:1;return <article className="agreement"><div className="agreement-top"><div><b>{compact(a.id,8)}</b><small>Recipient {compact(a.recipient,5)}</small></div><span className={'pill '+a.status}>{a.status==='source-paid'?'Source paid':a.status==='verified'?'Fact verified':a.status==='settled'?'Outcome enforced':'Agreement active'}</span></div><div className="steps">{steps.map((s,i)=><div className={i<n?'done':''} key={s}><i/>{s}</div>)}</div><div className="agreement-bottom"><div><b>{a.min}–{a.max} {a.symbol||'ASD'}</b><small>Deadline {new Date(a.deadline*1000).toLocaleDateString()}</small></div><div className="actions">{a.status==='registered'&&<button onClick={pay} disabled={busy==='pay'}>{busy==='pay'?'Paying…':'Pay on Base'}</button>}{a.status==='source-paid'&&<button onClick={check} disabled={busy==='verify'}>{busy==='verify'?'Verifying…':'Verify with NEAR MPC'}</button>}{a.status==='verified'&&<button onClick={settle} disabled={busy==='settle'}>{busy==='settle'?'Settling…':'Enforce outcome'}</button>}</div></div>{a.sourceTx&&<small className="tx-link">Source transaction <a href={CHAINS.base.explorer+'/tx/'+a.sourceTx} target="_blank" rel="noreferrer">{compact(a.sourceTx,7)} <ExternalLink size={10}/></a></small>}</article>}
