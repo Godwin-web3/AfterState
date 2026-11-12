@@ -44,6 +44,7 @@ fn base_sepolia_v1_payload_hash_matches_pinned_mpc_types() {
         ],
     );
 
+    println!("borsh={}", hex::encode(borsh::to_vec(&payload).expect("Borsh bytes")));
     let actual = payload.compute_msg_hash().expect("Borsh hash");
     assert_eq!(
         hex::encode(actual.0),
