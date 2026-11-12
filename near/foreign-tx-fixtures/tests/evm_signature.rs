@@ -5,17 +5,26 @@ use near_mpc_contract_interface::types::{
     K256AffinePoint, K256Scalar, K256Signature, SignatureResponse,
 };
 
-fn signature(prefix: u8, r: u8, s: u8, recovery_id: u8) -> SignatureResponse {
+fn signature_with_scalar(
+    prefix: u8,
+    r: u8,
+    scalar: [u8; 32],
+    recovery_id: u8,
+) -> SignatureResponse {
     let mut point = [0u8; 33];
     point[0] = prefix;
     point[32] = r;
-    let mut scalar = [0u8; 32];
-    scalar[31] = s;
     SignatureResponse::Secp256k1(K256Signature {
         big_r: K256AffinePoint { affine_point: point },
         s: K256Scalar { scalar },
         recovery_id,
     })
+}
+
+fn signature(prefix: u8, r: u8, s: u8, recovery_id: u8) -> SignatureResponse {
+    let mut scalar = [0u8; 32];
+    scalar[31] = s;
+    signature_with_scalar(prefix, r, scalar, recovery_id)
 }
 
 #[test]
@@ -37,7 +46,7 @@ fn rejects_recovery_id_outside_evm_range() {
 #[test]
 fn rejects_noncanonical_high_s() {
     assert_eq!(
-        mpc_signature_to_evm_bytes(signature(2, 1, 0xff, 0)).unwrap_err(),
+        mpc_signature_to_evm_bytes(signature_with_scalar(2, 1, [0xff; 32], 0)).unwrap_err(),
         EvmSignatureError::InvalidSScalar
     );
 }
