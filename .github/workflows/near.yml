@@ -36,5 +36,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: afterstate-near-adapter-wasm
-          path: target/wasm32-unknown-unknown/release/afterstate_near_adapter.wasm
+          path: near/adapter/target/wasm32-unknown-unknown/release/afterstate_near_adapter.wasm
           if-no-files-found: error
