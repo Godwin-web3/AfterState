@@ -28,7 +28,7 @@ Created → SourceFactAttested → ReadyToSettle → Settled. Failure/recovery s
 - docs/ — implementation notes and decisions
 
 ## Development
-Solidity 0.8.24, Foundry. First milestone: agreement-bound source-fact verification and one-time consumption. Second milestone: destination settlement with atomic, explicit postconditions and failure handling.
+Solidity 0.8.24, Foundry. First milestone: agreement-bound source-fact verification and one-time consumption. Second milestone: a narrow pre-funded ERC-20 settlement adapter now releases the attested asset/amount to the attested recipient and checks exact sender/recipient balance deltas in the same transaction. Settlement and verifier tests are authored but have not yet been executed.
 
 ## Non-goals for v0.1
 No arbitrary source-chain consensus proofs, arbitrary off-chain fact proofs, cross-chain atomicity, or universal EVM state-diff verification.
