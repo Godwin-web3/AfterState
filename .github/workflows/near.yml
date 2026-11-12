@@ -7,7 +7,9 @@ on:
     paths:
       - "near/foreign-tx-fixtures/**"
       - "near/adapter/**"
+      - "near/scripts/**"
       - ".github/workflows/near.yml"
+      - ".github/workflows/near-mpc-state.yml"
   pull_request:
     branches: [main]
     paths:
@@ -26,6 +28,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
+      - name: Validate live-state query script
+        run: bash -n near/scripts/query-mpc-testnet.sh
       - name: Run pinned MPC serialization fixtures
         run: |
           cargo test --manifest-path near/foreign-tx-fixtures/Cargo.toml
