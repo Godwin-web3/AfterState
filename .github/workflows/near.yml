@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - "near/foreign-tx-fixtures/**"
+      - "near/adapter/**"
       - ".github/workflows/near.yml"
   pull_request:
     branches: [main]
