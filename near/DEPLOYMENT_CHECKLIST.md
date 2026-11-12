@@ -32,17 +32,27 @@ The ForeignTx domain must have ForeignTx purpose; the signing domain must have S
 
 If Base is absent from the live available-chain view, stop. Do not silently switch chains or weaken finality.
 
-## 3. Deploy Base Sepolia contracts
+## 3. Deploy the EVM source and destination sides
 
-Deploy an allowlisted conventional ERC-20 test token, AfterStateSourceEmitter, AfterStateEIP712Verifier, AfterStateRegistry, and AfterStateERC20Settlement.
+The demo must use two different EVM chains or it is not a cross-chain execution demonstration:
 
+**Source: Base Sepolia (84532)**
+
+- Deploy an allowlisted conventional ERC-20 test token.
+- Deploy AfterStateSourceEmitter.
+- Record the token and emitter addresses, source chain ID, and deployed bytecode hashes.
+
+**Destination: Ethereum Sepolia (11155111)**
+
+- Deploy the destination ERC-20 at the **same address and with the same decimals** as the source token. For this narrow v0.1 demo, use the same deployer and matching account nonce for token creation on both networks, then verify the resulting token addresses are identical before proceeding. If they differ, stop; do not create an agreement.
+- Deploy AfterStateEIP712Verifier, AfterStateRegistry, and AfterStateERC20Settlement.
 - Initialize verifier signer version 1 with the EVM address derived from the live Sign domain for the adapter account and fixed path.
 - Point the registry at the verifier.
 - Point the settlement adapter at the registry and configure it as the registry's sole settlement adapter.
-- Create an agreement matching source chain 84532, source emitter, event schema, asset, recipient, amount bounds, and deadline.
-- Prefund the destination settlement contract.
+- Create an agreement with source chain 84532, destination chain 11155111 (set by the destination registry), Base Sepolia source emitter, SourcePayment event schema, matching token address, recipient, amount bounds, and deadline.
+- Prefund the destination settlement contract with the destination-chain token.
 
-This prototype requires matching source/destination asset addresses and amount units. It does not bridge assets or convert decimals.
+This prototype requires matching source/destination asset addresses and amount units. It does not bridge assets or convert decimals. The same token address on both networks is a demo constraint, not an asset-bridging mechanism.
 
 ## 4. Deploy the NEAR adapter
 
@@ -59,8 +69,8 @@ Use a small amount and fresh nonce:
 3. Submit the candidate log to verify_base_log from the authorized NEAR submitter.
 4. Confirm MPC ForeignTx verification returns only after the expected payload hash matches.
 5. Confirm the follow-on sign request uses the separate Sign domain and fixed afterstate-v1 path.
-6. Submit the returned EVM signature and exact fact to consumeSourceFact on the destination registry.
-7. Call settleERC20(agreementId, nonce).
+6. Submit the returned EVM signature and exact fact to consumeSourceFact on the Ethereum Sepolia destination registry.
+7. Call settleERC20(agreementId, nonce) on Ethereum Sepolia.
 8. Verify the recipient's exact balance delta and registry consumed/claimed state.
 
 Save transaction hashes, block identifiers, deployed addresses, domain IDs and purposes, provider quorum, gas used, and Git SHA as demo evidence.
