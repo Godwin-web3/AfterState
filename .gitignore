@@ -6,3 +6,6 @@ cache/
 out/
 target/
 near-mpc-state/
+
+# Local AfterState wallet material (never commit keys or backups)
+tools/wallet-setup/wallet-output/
