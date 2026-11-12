@@ -20,7 +20,7 @@ contract AfterStateEIP712Verifier is IAfterStateVerifier {
     mapping(uint32 => bool) public revokedVersion;
 
     bytes32 public constant SOURCE_FACT_TYPEHASH = keccak256(
-        "SourceFact(uint256 sourceChainId,address emitter,bytes32 eventSchema,bytes32 agreementId,bytes32 sourceBlockHash,bytes32 sourceTxHash,uint256 sourceBlockNumber,uint256 logIndex,address asset,uint256 amount,address recipient,uint64 observedAt,uint64 expiresAt,uint32 keyVersion,bytes32 nonce,address destinationRegistry)"
+        "SourceFact(uint256 sourceChainId,address emitter,bytes32 eventSchema,bytes32 agreementId,bytes32 sourceBlockHash,bytes32 sourceTxHash,uint256 sourceBlockNumber,uint256 logIndex,address asset,uint256 amount,address recipient,uint64 observedAt,uint64 expiresAt,uint32 keyVersion,uint32 agreementVersion,bytes32 finalityPolicyId,bytes32 nonce,address destinationRegistry)"
     );
     bytes32 public constant DOMAIN_TYPEHASH = keccak256(
         "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
@@ -129,6 +129,8 @@ contract AfterStateEIP712Verifier is IAfterStateVerifier {
                 fact.observedAt,
                 fact.expiresAt,
                 fact.keyVersion,
+                fact.agreementVersion,
+                fact.finalityPolicyId,
                 fact.nonce,
                 destinationRegistry
             )
