@@ -2,21 +2,26 @@
 
 **Verified conditions. Enforced outcomes.**
 
-AfterState is an execution-assurance protocol for cross-chain workflows. It binds a specific source-chain event to a destination EIP-712 authorization, then leaves destination execution to an agreement-bound registry and settlement adapter. The intended testnet path is Base Sepolia (source) → NEAR MPC (verification and signing) → Ethereum Sepolia (destination).
+AfterState is an execution-assurance protocol for cross-chain workflows. It binds a specific source-chain event to a destination EIP-712 authorization, then leaves destination execution to an agreement-bound registry and settlement adapter.
 
-> Status: experimental prototype. EVM and NEAR adapter tests/builds pass. A read-only query of live MPC testnet state succeeded, but the AfterState adapter is not deployed and no live ForeignTx verification or destination settlement has been executed. The system is unaudited and not production-ready.
+**Reference path:** Base Sepolia (source) → NEAR MPC (ForeignTx verification + Chain Signatures) → Ethereum Sepolia (destination).
 
-## Current vertical slice
+## Current status
 
-1. AfterStateSourceEmitter transfers an exact ERC-20 amount to a recipient on Base Sepolia and emits a typed SourcePayment log.
-2. The NEAR adapter decodes that event and validates it against one immutable configured agreement.
-3. It builds the MPC 3.18.0 ForeignTx request with Finalized finality, BlockHash + exact Log extractors, and mandatory expected_payload_hash.
-4. After MPC verifies the request, the NEAR adapter computes the exact AfterState EIP-712 digest and calls the separate Sign-purpose domain using the fixed path afterstate-v1.
-5. The NEAR adapter converts the MPC secp256k1 response into canonical EVM r||s||v bytes. The EVM verifier authenticates the configured signer version; the registry enforces agreement constraints and one-time source-fact consumption.
+- Solidity contracts and Foundry tests are implemented.
+- The NEAR adapter and MPC 3.18.0 ForeignTx request path are implemented and WASM-target checked.
+- A live read-only query confirmed Base support, ForeignTx domain 3, Secp256k1 Sign domain 0, and derived the adapter's MPC signer address.
+- The NEAR adapter is not yet deployed. No live ForeignTx verification or destination settlement has been executed.
+- Experimental prototype; unaudited; not production-ready.
 
-The cross-language EIP-712 digest is tested against the Solidity verifier. The ForeignTx request and Borsh payload are pinned to the NEAR MPC 3.18.0 interface commit e691bdb98d68dcf74653da58d043453a6318765f. The live testnet signer contract reported version 3.18.0 in the 2026-11-12 state snapshot.
+## Frontend
 
-## CI status
+The Vite/React interface is in the frontend directory. It supports EIP-1193 wallet connection, destination agreement registration, Base Sepolia token approval and source payment, accepted-fact reads, and destination settlement. Contract addresses are configured in Network setup and stored locally in the browser.
 
-- Foundry: **22 tests passed, 0 failed** on commit `fca083d68e8605b01db898d487d66a5f47cb1e75`.
-  https://github.com/Godwin-web3/AfterState/actions/runs...[truncated]
+A successful source payment is not shown as verified. The NEAR adapter must submit its ForeignTx + MPC-signature result to the destination registry, and the registry must expose the matching accepted fact before settlement is available. v0.1 assumes the same ERC-20 address and units on both EVM testnets.
+
+## Security boundaries
+
+NEAR MPC authenticates the foreign transaction observation under its provider and threshold assumptions; it is not a trustless EVM light client. Cross-chain execution is not atomic. Source payments are irreversible and are not automatically refunded if destination execution fails. The EVM verifier authenticates a configured signer; it does not independently prove source-chain consensus or prove that a signature came from NEAR MPC.
+
+See [the protocol specification](./spec/PROTOCOL.md), [NEAR deployment checklist](./near/DEPLOYMENT_CHECKLIST.md), and [security review](./docs/SECURITY_REVIEW.md).
