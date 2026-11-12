@@ -110,8 +110,9 @@ impl AfterStateNearAdapter {
         );
         require!(
             foreign_callback_gas_tgas > sign_call_gas_tgas
-                && foreign_callback_gas_tgas - sign_call_gas_tgas > signature_callback_gas_tgas,
-            "ForeignTx callback gas must cover the follow-on Sign call and signature callback"
+                && foreign_callback_gas_tgas - sign_call_gas_tgas > signature_callback_gas_tgas
+                && foreign_callback_gas_tgas - sign_call_gas_tgas - signature_callback_gas_tgas >= 10,
+            "ForeignTx callback gas must cover follow-on promises and retain 10 Tgas for callback execution"
         );
         require!(
             sign_call_gas_tgas >= MIN_MPC_REQUEST_GAS_TGAS,
@@ -426,7 +427,7 @@ mod adapter_tests {
 
     #[test]
     fn constructor_rejects_foreign_callback_that_cannot_schedule_sign_promises() {
-        let result = catch_unwind(AssertUnwindSafe(|| construct_with_gas(10, 11, 20, 50, 20, 30)));
+        let result = catch_unwind(AssertUnwindSafe(|| construct_with_gas(10, 11, 20, 59, 20, 30)));
         assert!(result.is_err(), "callback gas budget cannot cover follow-on promises");
     }
 }
