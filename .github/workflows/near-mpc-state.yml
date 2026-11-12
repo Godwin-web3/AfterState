@@ -36,6 +36,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Query live NEAR MPC testnet views
         env:
+          FOREIGN_TX_DOMAIN_ID: ${{ inputs.foreign_tx_domain_id }}
           ADAPTER_ACCOUNT_ID: ${{ inputs.adapter_account_id }}
           SIGN_DOMAIN_ID: ${{ inputs.sign_domain_id }}
         run: bash near/scripts/query-mpc-testnet.sh
