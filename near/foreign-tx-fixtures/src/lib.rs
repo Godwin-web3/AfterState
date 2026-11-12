@@ -373,3 +373,32 @@ pub fn mpc_signature_to_evm_bytes(
     output[64] = 27 + signature.recovery_id;
     Ok(output)
 }
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EvmAddressDerivationError {
+    InvalidPublicKeyJson,
+    UnsupportedPublicKeyScheme,
+}
+
+pub fn evm_address_from_mpc_public_key(
+    public_key: &near_mpc_contract_interface::types::PublicKey,
+) -> Result<[u8; 20], EvmAddressDerivationError> {
+    use near_mpc_contract_interface::types::PublicKey;
+
+    let uncompressed_xy = match public_key {
+        PublicKey::Secp256k1(key) => key.as_bytes(),
+        _ => return Err(EvmAddressDerivationError::UnsupportedPublicKeyScheme),
+    };
+    let digest = keccak256(uncompressed_xy);
+    let mut address = [0u8; 20];
+    address.copy_from_slice(&digest[12..]);
+    Ok(address)
+}
+
+pub fn evm_address_from_mpc_public_key_json(
+    json: &str,
+) -> Result<[u8; 20], EvmAddressDerivationError> {
+    let public_key: near_mpc_contract_interface::types::PublicKey =
+        serde_json::from_str(json).map_err(|_| EvmAddressDerivationError::InvalidPublicKeyJson)?;
+    evm_address_from_mpc_public_key(&public_key)
+}
