@@ -4,7 +4,9 @@ Status: implementation review only; no external audit. EVM and NEAR components a
 
 ## Verified implementation
 
-- Foundry CI passed 19 tests on commit b11e7348764417545829ed0da4d3296d944e5f13.
+Latest verified runs: [Foundry CI](https://github.com/Godwin-web3/AfterState/actions/runs/43210883412) and [NEAR adapter CI](https://github.com/Godwin-web3/AfterState/actions/runs/43210883608).
+
+- Foundry CI passed 19 tests on commit 22e43de43fdfdb4fdc8fcfe83abee557f810299b.
 - NEAR Rust CI passed 11 tests and checked the adapter for wasm32-unknown-unknown on the same commit.
 - EIP-712 digest fixture matches the Solidity verifier byte-for-byte for a deterministic fact, destination chain, verifier and registry.
 - MPC ForeignTx fixture uses NEAR MPC 3.19.0 pinned commit 86e2cc4d124397ec81f436b11f48bf9b6dfd062e and asserts both exact Borsh bytes and SHA-256 payload hash.
