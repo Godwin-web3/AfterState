@@ -6,6 +6,7 @@ import path from "node:path";
 import readline from "node:readline";
 import { Wallet } from "ethers";
 import { generateSeedPhrase } from "near-seed-phrase";
+import bs58 from "bs58";
 
 const scrypt = promisify(scryptCallback);
 const OUT_DIR = path.resolve(process.cwd(), "wallet-output");
@@ -87,6 +88,7 @@ async function main() {
   // Wallet.createRandom uses Node's cryptographically secure random source.
   const evm = Wallet.createRandom();
   const near = generateSeedPhrase();
+  const nearImplicitAccountId = Buffer.from(bs58.decode(near.publicKey.split(":")[1])).toString("hex");
 
   const secretPayload = {
     format: "afterstate-wallet-backup-v1",
@@ -101,6 +103,7 @@ async function main() {
     near: {
       network: "NEAR testnet",
       publicKey: near.publicKey,
+      implicitAccountId: nearImplicitAccountId,
       seedPhrase: near.seedPhrase,
       secretKey: near.secretKey
     }
@@ -125,7 +128,7 @@ async function main() {
     project: "AfterState",
     purpose: "Dedicated testnet deployment identities",
     evm: { network: "Base Sepolia", chainId: 84532, address: evm.address },
-    near: { network: "NEAR testnet", publicKey: near.publicKey },
+    near: { network: "NEAR testnet", publicKey: near.publicKey, implicitAccountId: nearImplicitAccountId },
     notes: [
       "The EVM address is generated locally; it is not funded.",
       "The NEAR keypair is generated locally; a named NEAR testnet account still needs to be registered/funded.",
@@ -139,6 +142,7 @@ async function main() {
   console.log("\nWallet material generated locally.");
   console.log("EVM address:", evm.address);
   console.log("NEAR public key:", near.publicKey);
+  console.log("NEAR implicit account ID:", nearImplicitAccountId);
   console.log("\nEncrypted backup:", SECRET_FILE);
   console.log("Public addresses:", PUBLIC_FILE);
   console.log("\nIMPORTANT: Keep wallet-output/afterstate-wallets.enc.json and its password offline.");
