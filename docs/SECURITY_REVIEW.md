@@ -4,14 +4,16 @@ Status: implementation review only; no external audit. EVM and NEAR components a
 
 ## Verified implementation
 
-Latest verified runs: [Foundry CI](https://github.com/Godwin-web3/AfterState/actions/runs/43212159502) and [NEAR adapter CI + WASM artifact](https://github.com/Godwin-web3/AfterState/actions/runs/43212159490).
+Latest verified runs: [Foundry CI](https://github.com/Godwin-web3/AfterState/actions/runs/43239292839) and [NEAR adapter CI](https://github.com/Godwin-web3/AfterState/actions/runs/43211514663).
 
-- Foundry CI passed 19 tests on commit 22e43de43fdfdb4fdc8fcfe83abee557f810299b.
-- NEAR Rust CI passed 16 tests and built the adapter WASM artifact on commit 8406e5f4204ee21599664e122dc7aca7663e6276.
+- Foundry CI passed 20 tests on commit 1a9c137a015ad214c67eb5951b4cc7e4b3da80fd.
+- NEAR Rust CI passed the pinned fixtures, adapter unit tests and WASM checks on commit 15958e60b6f037bfc317a5d30b12e19d2a482229. The expanded workflow additionally validates the live-state query script and builds release WASM; its run on commit 094cba9f2c4525a18b54bf395473adceac0a1d71 remains in progress.
 - EIP-712 digest fixture matches the Solidity verifier byte-for-byte for a deterministic fact, destination chain, verifier and registry.
 - MPC ForeignTx fixture uses NEAR MPC 3.19.0 pinned commit 86e2cc4d124397ec81f436b11f48bf9b6dfd062e and asserts both exact Borsh bytes and SHA-256 payload hash.
 - SourcePayment decoder checks exact topic0, topic count, ABI data length, canonical address padding, integer bounds and nonzero fields.
 - NEAR adapter validates the candidate SourcePayment against its configured source emitter and agreement before calling MPC.
+- NEAR adapter rejects a source event timestamp equal to the agreement deadline, because the EVM registry requires expiresAt to be strictly later than observedAt.
+- Destination settlement failure rolls back the registry's cross-contract fact claim atomically; a Foundry regression test verifies that an underfunded attempt can be retried after funding.
 - NEAR adapter requires expected_payload_hash, waits for the MPC ForeignTx callback, checks the returned hash, then calls the distinct Sign-purpose domain with fixed derivation path afterstate-v1.
 - MPC secp256k1 signature conversion checks recovery ID, compressed R-point prefix, r range and low-s canonicality before returning EVM r||s||v.
 - EVM EIP-712 verifier binds signatures to chain ID and verifier address, and supports versioned signer keys and revocation.
