@@ -4,13 +4,13 @@
 
 AfterState is an execution-assurance protocol for cross-chain workflows. It separates two assertions: (1) a precisely scoped event occurred on a specified source chain, and (2) the destination action completed and its declared postconditions hold. A source event does not prove destination execution; an EVM-successful transaction does not prove the intended application outcome.
 
-> Status: early experimental implementation. The repository contains an initial specification and a minimal EVM source-fact registry. It is unaudited and not production-ready.
+> Status: experimental prototype. Includes an EVM attestation registry, EIP-712 signer verifier, one-time ERC-20 settlement adapter, initial tests and NEAR Read RPC integration research. It is unaudited, uncompiled in this environment, and not production-ready.
 
 ## Design goals
 - Typed, domain-separated source attestations.
 - Explicit chain, emitter, event, agreement, amount, recipient and asset constraints.
-- Replay protection and expiry.
-- Destination settlement guarded by measurable postconditions (next milestone).
+- Replay protection, expiry and registry-level one-time settlement claims.
+- Destination ERC-20 settlement guarded by measurable balance-delta postconditions.
 - Explicit trust assumptions and recoverable failure states.
 - No false claims that RPC-backed observations are trustless consensus proofs.
 
@@ -28,7 +28,7 @@ Created → SourceFactAttested → ReadyToSettle → Settled. Failure/recovery s
 - docs/ — implementation notes and decisions
 
 ## Development
-Solidity 0.8.24, Foundry. First milestone: agreement-bound source-fact verification and one-time consumption. Second milestone: a narrow pre-funded ERC-20 settlement adapter now releases the attested asset/amount to the attested recipient and checks exact sender/recipient balance deltas in the same transaction. Settlement and verifier tests are authored but have not yet been executed.
+Solidity 0.8.24, Foundry. First milestone: agreement-bound source-fact verification and one-time consumption. Second milestone: a narrow pre-funded ERC-20 settlement adapter now releases the attested asset/amount to the attested recipient and checks exact sender/recipient balance deltas in the same transaction. Settlement and verifier tests are authored but have not yet been executed. The registry allows one configured settlement adapter and tracks claims globally.
 
 ## Non-goals for v0.1
 No arbitrary source-chain consensus proofs, arbitrary off-chain fact proofs, cross-chain atomicity, or universal EVM state-diff verification.
@@ -38,6 +38,9 @@ MIT. See LICENSE.
 
 ## NEAR integration status
 NEAR Read RPC / foreign-chain transaction verification is the intended source-observation path. Its exact deployed interface and supported event formats still require validation; see [near/ARCHITECTURE.md](near/ARCHITECTURE.md). No NEAR adapter is claimed as implemented yet.
+
+## Security review
+See [docs/SECURITY_REVIEW.md](docs/SECURITY_REVIEW.md) for implemented controls, trust boundaries, fixes and outstanding tests.
 
 ## Current implementation
 The EVM reference now includes an EIP-712 verifier with versioned signer keys, signer revocation, destination-registry binding and low-s signature checks, plus a Foundry test suite covering valid consumption, replay, registry-domain substitution, revoked signers, expiry and agreement constraints. These tests are authored but have not yet been executed in this environment.
