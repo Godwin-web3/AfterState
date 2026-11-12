@@ -37,7 +37,7 @@ jobs:
       - name: Query live NEAR MPC testnet views
         env:
           FOREIGN_TX_DOMAIN_ID: ${{ inputs.foreign_tx_domain_id }}
-          ADAPTER_ACCOUNT_ID: ${{ inputs.adapter_account_id }}
+          ADAPTER_ACCOUNT_ID: ${{ github.event.inputs.adapter_account_id || 'b6739911d06797c8d55539944a5226d132c2001e34d7bf38993e735954b162d3' }}
           SIGN_DOMAIN_ID: ${{ inputs.sign_domain_id }}
         run: bash near/scripts/query-mpc-testnet.sh
       - name: Upload public contract state report
