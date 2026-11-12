@@ -40,13 +40,12 @@ The Foundry CI run on commit 2a567b12ab4eb5b1c3fa37a65a25431b3729944a compiled S
 - Adapter replacement and owner compromise assumptions are documented and tested.
 - Signer rotation/revocation edge cases and malformed ECDSA signatures.
 - Fuzz source facts across all agreement fields and timestamps.
-- Byte-for-byte Borsh payload hash fixtures against a pinned NEAR MPC release.
+- Byte-for-byte Borsh payload hash fixtures against pinned NEAR MPC 3.19.0 types.
 - End-to-end NEAR testnet tests for wrong payload hash, malformed/missing/removed log, wrong log index, non-finalized receipt, provider-quorum failure and callback timeout.
 - Verify that the NEAR contract uses a fixed derivation path and never signs arbitrary caller-supplied digests.
 
 ## NEAR integration references
 
-- https://github.com/near/mpc
-- https://github.com/near/mpc/blob/main/crates/contract/src/api/foreign_chain/requests.rs
-- https://github.com/near/mpc/blob/main/crates/near-mpc-contract-interface/src/types/foreign_chain/chains/evm.rs
-- https://github.com/near/mpc/blob/main/crates/near-mpc-contract-interface/src/types/foreign_chain/sign_payload.rs
+- https://github.com/near/mpc/releases/tag/3.19.0
+- https://github.com/near/mpc/blob/86e2cc4d124397ec81f436b11f48bf9b6dfd062e/crates/contract/src/api/foreign_chain/requests.rs
+- https://github.com/near/mpc/blob/86e2cc4d124397ec81f436b11f48bf9b6dfd062e/crates/near-mpc-contract-interface/src/types/foreign_chain.rs
