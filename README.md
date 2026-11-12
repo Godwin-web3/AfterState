@@ -25,7 +25,7 @@ The cross-language EIP-712 digest is tested against the Solidity verifier. The F
   Artifact: [afterstate-near-adapter-wasm](https://github.com/Godwin-web3/AfterState/actions/runs/43242707323)
   Artifact archive SHA-256: `216d604ebf4f5a3d6505335345350a3701f00c7cdbe4c9662edfb87161c5da6a`.
 - Live MPC state: read-only testnet query passed on commit `f3b439bb5bb17444d783a67415404a76dceae6d8`, confirming Base availability, provider quorum 2, and live ForeignTx / Secp256k1 Sign domains.
-  https://github.com/Godwin-web3/AfterState/actions/runs/43240885721
+  https://github.com/Godwin-web3/AfterState/actions/runs/43243643428
 
 ## Important constraints
 
