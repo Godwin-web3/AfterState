@@ -4,7 +4,7 @@
 
 AfterState is an execution-assurance protocol for cross-chain workflows. It binds a specific source-chain event to a destination EIP-712 authorization, then leaves destination execution to an agreement-bound registry and settlement adapter.
 
-> Status: experimental prototype. EVM tests and NEAR adapter compile checks pass. The NEAR adapter is not deployed or tested end-to-end against live MPC testnet state. The system is unaudited and not production-ready.
+> Status: experimental prototype. EVM and NEAR adapter tests/builds pass. A read-only query of live MPC testnet state succeeded, but the AfterState adapter is not deployed and no live ForeignTx verification or destination settlement has been executed. The system is unaudited and not production-ready.
 
 ## Current vertical slice
 
@@ -14,7 +14,7 @@ AfterState is an execution-assurance protocol for cross-chain workflows. It bind
 4. After MPC verifies the request, the NEAR adapter computes the exact AfterState EIP-712 digest and calls the separate Sign-purpose domain using the fixed path afterstate-v1.
 5. The NEAR adapter converts the MPC secp256k1 response into canonical EVM r||s||v bytes. The EVM verifier authenticates the configured signer version; the registry enforces agreement constraints and one-time source-fact consumption.
 
-The cross-language EIP-712 digest is tested against the Solidity verifier. The ForeignTx request and Borsh payload are pinned to NEAR MPC 3.19.0 commit 86e2cc4d124397ec81f436b11f48bf9b6dfd062e.
+The cross-language EIP-712 digest is tested against the Solidity verifier. The ForeignTx request and Borsh payload are pinned to the NEAR MPC 3.19.0 interface commit 86e2cc4d124397ec81f436b11f48bf9b6dfd062e. The live testnet signer contract reported version 3.18.0 in the 2026-11-12 state snapshot.
 
 ## CI status
 
@@ -27,8 +27,8 @@ The cross-language EIP-712 digest is tested against the Solidity verifier. The F
 
 ## Important constraints
 
-- Base Sepolia (84532) appears in the MPC 3.19.0 example testnet node configuration; live signer contract availability and provider quorum still require a live state query.
-- The ForeignTx domain ID and Sign domain ID are separate and must be read from the deployed contract. Neither is hardcoded. The manual [NEAR MPC Testnet State workflow](https://github.com/Godwin-web3/AfterState/actions/workflows/near-mpc-state.yml) queries contract state, domains, available chains, provider configuration and gas settings; with the deployed adapter account and Sign domain ID, it also derives the EVM signer address for afterstate-v1.
+- Base Sepolia (84532) is confirmed in the live MPC testnet available-chain set. The on-chain Base RPC provider whitelist has three providers and a quorum of two. See the [live MPC testnet snapshot](near/MPC_TESTNET_SNAPSHOT.md); this is a dated observation and must be rechecked before deployment.
+- The current testnet snapshot shows ForeignTx domain 3 and a Secp256k1 Sign domain 0; the adapter enforces distinct IDs. The read-only [NEAR MPC Testnet State workflow](https://github.com/Godwin-web3/AfterState/actions/workflows/near-mpc-state.yml) now discovers the live ForeignTx and Secp256k1 Sign domains automatically. With the deployed adapter account, it can derive the exact EVM signer address for afterstate-v1. Always recheck before deployment.
 - The EVM verifier's signer version is an AfterState version, not the MPC domain ID. The derived EVM address for the NEAR adapter account and fixed path must be derived and configured explicitly.
 - v0.1 assumes the source and destination ERC-20 use the same address and amount units. Cross-chain asset mapping and decimal conversion are not implemented.
 - SourcePayment is an irreversible source-chain payment, not escrow. Destination settlement is not atomic with it; there is no automatic refund if destination execution fails.
@@ -43,4 +43,4 @@ The cross-language EIP-712 digest is tested against the Solidity verifier. The F
 - near/adapter/ — NEAR ForeignTx + Chain Signatures adapter
 - docs/ — security review and implementation decisions
 
-See near/ARCHITECTURE.md, near/REQUEST_SCHEMA.md, near/adapter/README.md and near/DEPLOYMENT_CHECKLIST.md for deployment gates, live-state checks, acceptance tests and trust assumptions.
+See near/ARCHITECTURE.md, near/REQUEST_SCHEMA.md, near/MPC_TESTNET_SNAPSHOT.md, near/adapter/README.md and near/DEPLOYMENT_CHECKLIST.md for deployment gates, live-state checks, acceptance tests and trust assumptions.
