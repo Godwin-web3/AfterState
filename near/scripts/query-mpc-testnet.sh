@@ -39,17 +39,20 @@ view_call get_available_foreign_chains '{}' > "$OUTPUT_DIR/available_foreign_cha
 view_call get_foreign_chains_configs '{}' > "$OUTPUT_DIR/foreign_chains_configs.json"
 view_call allowed_foreign_chain_providers '{}' > "$OUTPUT_DIR/allowed_foreign_chain_providers.json"
 
-# Discover current domains from deployed state unless explicitly overridden.
-# Select a Sign domain whose live key is Secp256k1 for EVM signing.
+# Normalize the state response and discover current domains unless overridden.
+jq -c 'if type == "string" then fromjson else . end' \
+  "$OUTPUT_DIR/state.json" > "$OUTPUT_DIR/state.normalized.json"
 if [[ -z "$FOREIGN_TX_DOMAIN_ID" ]]; then
-  FOREIGN_TX_DOMAIN_ID="$(jq -er '[.Running.domains.domains[] | select(.purpose == "ForeignTx") | .id] | first' "$OUTPUT_DIR/state.json")"
+  FOREIGN_TX_DOMAIN_ID="$(jq -er '
+    (if has("Running") then .Running else .state.Running end) as $running |
+    [$running.domains.domains[] | select(.purpose == "ForeignTx") | .id] | first
+  ' "$OUTPUT_DIR/state.normalized.json")"
 fi
 if [[ -z "$SIGN_DOMAIN_ID" ]]; then
   SIGN_DOMAIN_ID="$(jq -er '
-    [.Running.domains.domains[] | select(.purpose == "Sign") | .id] as $sign_ids |
-    [.Running.keyset.domains[] | select(.key | has("Secp256k1")) | .domain_id] as $secp_ids |
-    ($sign_ids | map(select(. as $id | $secp_ids | index($id))) | first)
-  ' "$OUTPUT_DIR/state.json")"
+    (if has("Running") then .Running else .state.Running end) as $running |
+    [$running.domains.domains[] | select(.purpose == "Sign" and .protocol == "CaitSith") | .id] | first
+  ' "$OUTPUT_DIR/state.normalized.json")"
 fi
 
 if [[ -n "$FOREIGN_TX_DOMAIN_ID" ]]; then
