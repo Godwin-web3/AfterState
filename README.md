@@ -18,8 +18,8 @@ The cross-language EIP-712 digest is tested against the Solidity verifier. The F
 
 ## CI status
 
-- Foundry: **20 tests passed, 0 failed** on commit `f3b439bb5bb17444d783a67415404a76dceae6d8`.
-  https://github.com/Godwin-web3/AfterState/actions/runs/43240885726
+- Foundry: **22 tests passed, 0 failed** on commit `b2c68d320047e4799bd81db698f221aaba634eb2`.
+  https://github.com/Godwin-web3/AfterState/actions/runs/43241421852
 - NEAR adapter: **18 Rust tests passed**, live-state query script validation passed, WASM checks passed, and the release WASM artifact uploaded on commit `51b5ace90db77c96ab23933ee00593fde4875a31`.
   https://github.com/Godwin-web3/AfterState/actions/runs/43240294674
   Artifact: [afterstate-near-adapter-wasm](https://github.com/Godwin-web3/AfterState/actions/runs/43240294674)
@@ -38,11 +38,12 @@ The cross-language EIP-712 digest is tested against the Solidity verifier. The F
 
 ## Layout
 
-- contracts/ — EVM verifier, registry, settlement adapter and source payment emitter
+- contracts/ — EVM verifier, registry, settlement adapter, source payment emitter and testnet demo token
 - test/ — Foundry tests
+- script/ — Base Sepolia source and Ethereum Sepolia destination deployment scripts
 - spec/ — protocol specification
 - near/foreign-tx-fixtures/ — pinned MPC request builder, event decoder, EIP-712 digest and signature encoding fixtures
 - near/adapter/ — NEAR ForeignTx + Chain Signatures adapter
 - docs/ — security review and implementation decisions
 
-See near/ARCHITECTURE.md, near/REQUEST_SCHEMA.md, near/MPC_TESTNET_SNAPSHOT.md, near/adapter/README.md and near/DEPLOYMENT_CHECKLIST.md for deployment gates, live-state checks, acceptance tests and trust assumptions.
+See near/ARCHITECTURE.md, near/REQUEST_SCHEMA.md, near/MPC_TESTNET_SNAPSHOT.md, near/adapter/README.md and near/DEPLOYMENT_CHECKLIST.md for deployment gates, live-state checks, acceptance tests and trust assumptions. Copy `.env.example` to `.env` for testnet deployment; `.env` is ignored by Git.
