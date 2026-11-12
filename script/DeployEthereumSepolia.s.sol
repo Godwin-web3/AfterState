@@ -27,6 +27,7 @@ contract DeployEthereumSepolia is AfterStateDeployBase {
         _assertTokenDeploymentNonce(deployer);
 
         address expectedAsset = vm.envAddress("EXPECTED_ASSET_ADDRESS");
+        bytes32 expectedAssetCodeHash = vm.envBytes32("EXPECTED_ASSET_CODE_HASH");
         address signer = vm.envAddress("AFTERSTATE_MPC_SIGNER_ADDRESS");
         address sourceEmitter = vm.envAddress("BASE_SEPOLIA_SOURCE_EMITTER");
         address recipient = vm.envAddress("DESTINATION_RECIPIENT");
@@ -43,6 +44,7 @@ contract DeployEthereumSepolia is AfterStateDeployBase {
         uint64 deadline = uint64(deadlineRaw);
 
         require(expectedAsset != address(0), "expected asset is zero");
+        require(expectedAssetCodeHash != bytes32(0), "expected asset code hash is zero");
         require(signer != address(0), "MPC signer address is zero");
         require(sourceEmitter != address(0), "source emitter is zero");
         require(recipient != address(0), "destination recipient is zero");
@@ -52,6 +54,10 @@ contract DeployEthereumSepolia is AfterStateDeployBase {
         vm.startBroadcast(privateKey);
         AfterStateDemoToken token = new AfterStateDemoToken(deployer);
         require(address(token) == expectedAsset, "source/destination token addresses differ");
+        require(
+            keccak256(address(token).code) == expectedAssetCodeHash,
+            "source/destination token bytecode differs"
+        );
 
         AfterStateEIP712Verifier verifier = new AfterStateEIP712Verifier(deployer, 1, signer);
         AfterStateRegistry registry =
