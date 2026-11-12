@@ -36,7 +36,7 @@ contract AfterStateTest {
         vm.prank(owner);
         registry.createAgreement(
             AGREEMENT,
-            11155111,
+            84532,
             emitter,
             EVENT_SCHEMA,
             asset,
@@ -49,7 +49,7 @@ contract AfterStateTest {
 
     function _fact(bytes32 nonce) internal view returns (IAfterStateVerifier.SourceFact memory fact) {
         fact = IAfterStateVerifier.SourceFact({
-            sourceChainId: 11155111,
+            sourceChainId: 84532,
             emitter: emitter,
             eventSchema: EVENT_SCHEMA,
             agreementId: AGREEMENT,
@@ -64,7 +64,7 @@ contract AfterStateTest {
             expiresAt: uint64(block.timestamp + 1 hours),
             keyVersion: 1,
             agreementVersion: 1,
-            finalityPolicyId: keccak256("sepolia-12-confirmations"),
+            finalityPolicyId: keccak256("base-sepolia-finalized"),
             nonce: nonce
         });
     }
