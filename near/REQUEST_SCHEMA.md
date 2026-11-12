@@ -1,10 +1,10 @@
 # NEAR ForeignTx request contract
 
-Status: interface contract pinned to the NEAR MPC source inspected on 2026-11-12. This is an integration specification, not an implemented adapter.
+Status: interface contract pinned to NEAR MPC 3.19.0, release commit 86e2cc4d124397ec81f436b11f48bf9b6dfd062e. This is an integration specification, not a deployed or end-to-end adapter.
 
 ## Source of truth
 
-The current near/mpc source exposes:
+The inspected 3.19.0 source exposes:
 - verify_foreign_transaction(VerifyForeignTransactionRequestArgs) as a payable method.
 - VerifyForeignTransactionRequestArgs with request, domain_id, payload_version and optional expected_payload_hash.
 - ForeignTxPayloadVersion::V1 serialized as integer 1.
@@ -14,12 +14,13 @@ The current near/mpc source exposes:
 - EvmLog fields removed, log_index, transaction_index, transaction_hash, block_hash, block_number, address, data and topics.
 - VerifyForeignTransactionResponse with payload_hash and signature.
 
-Primary source files:
-- https://github.com/near/mpc/blob/main/crates/contract/src/api/foreign_chain/requests.rs
-- https://github.com/near/mpc/blob/main/crates/near-mpc-contract-interface/src/types/foreign_chain/request.rs
-- https://github.com/near/mpc/blob/main/crates/near-mpc-contract-interface/src/types/foreign_chain/rpc_request.rs
-- https://github.com/near/mpc/blob/main/crates/near-mpc-contract-interface/src/types/foreign_chain/chains/evm.rs
-- https://github.com/near/mpc/blob/main/crates/near-mpc-contract-interface/src/types/foreign_chain/sign_payload.rs
+Pinned primary sources:
+- https://github.com/near/mpc/blob/86e2cc4d124397ec81f436b11f48bf9b6dfd062e/crates/contract/src/api/foreign_chain/requests.rs
+- https://github.com/near/mpc/blob/86e2cc4d124397ec81f436b11f48bf9b6dfd062e/crates/near-mpc-contract-interface/src/types/foreign_chain/request.rs
+- https://github.com/near/mpc/blob/86e2cc4d124397ec81f436b11f48bf9b6dfd062e/crates/near-mpc-contract-interface/src/types/foreign_chain/rpc_request.rs
+- https://github.com/near/mpc/blob/86e2cc4d124397ec81f436b11f48bf9b6dfd062e/crates/near-mpc-contract-interface/src/types/foreign_chain.rs
+
+In 3.19.0, the foreign-chain DTOs were consolidated into foreign_chain.rs. Do not copy paths from older releases.
 
 ## Base Sepolia request shape
 
@@ -43,15 +44,15 @@ The JSON wire shape is:
 
 This is a schema illustration, not a ready-to-submit request. The domain ID must be read from deployed contract state and checked for ForeignTx purpose. Do not assume a domain number from a tutorial or another deployment. Transaction hash, log index and expected log fields must come from a candidate receipt, then be independently checked by MPC.
 
-The current example testnet node configuration in near/mpc/deployment/cvm-deployment/user-config.toml includes Base Sepolia with expected network fingerprint 84532. This proves Base Sepolia is in the example testnet node configuration; it does not prove that the live signer contract currently advertises Base as available. The contract checks its live available-chain set before accepting the request. A live contract query and real end-to-end request remain mandatory.
+The 3.19.0 example testnet node configuration includes Base Sepolia with expected network fingerprint 84532. This proves Base Sepolia is in the example testnet node configuration; it does not prove that the live signer contract currently advertises Base as available. The contract checks its live available-chain set before accepting the request. A live contract query and real end-to-end request remain mandatory.
 
 ## Why expected_payload_hash is mandatory
 
-The MPC source constructs ForeignTxSignPayload::V1 containing the exact request and extracted values, Borsh-serializes it, then SHA-256 hashes the bytes. The nodes sign that 32-byte hash. When expected_payload_hash is supplied, the contract compares the MPC response payload hash with the expected hash. The field is optional in the interface, but AfterState must not omit it.
+The MPC source constructs ForeignTxSignPayload::V1 containing the exact request and extracted values, Borsh-serializes it, then SHA-256 hashes the bytes. The nodes sign that 32-byte hash. When expected_payload_hash is supplied, the MPC contract compares the MPC response payload hash with the expected hash and rejects a mismatch. The field is optional in the interface, but AfterState must not omit it.
 
 The candidate EVM log is not trusted merely because an ordinary RPC returned it. The NEAR adapter must construct the exact expected EVM request and expected extracted values, calculate the exact Borsh payload hash, and pass that hash to MPC. MPC nodes independently query their configured foreign-chain RPC providers. A mismatch must fail closed.
 
-Do not hand-roll a partial encoding. Pin an MPC interface/release version and maintain byte-for-byte fixtures generated from that version's Rust types. Borsh enum discriminants, field order, bounded extractor encoding, hash byte order and the ForeignChainRpcRequest::Base variant index are consensus-critical inputs to the hash.
+Do not hand-roll a partial encoding. AfterState now includes a Rust fixture crate that imports the exact NEAR MPC 3.19.0 interface commit and checks a deterministic Base Sepolia V1 payload hash. Borsh enum discriminants, field order, bounded extractor encoding, hash byte order and the ForeignChainRpcRequest::Base variant index are consensus-critical inputs to the hash. Updating the pinned MPC commit requires reviewing the DTO changes and deliberately updating the fixture.
 
 ## Required two-stage NEAR flow
 
@@ -65,6 +66,12 @@ Do not hand-roll a partial encoding. Pin an MPC interface/release version and ma
 
 The ForeignTx-purpose key and Sign-purpose key are distinct. Do not use the ForeignTx signature as if it were the AfterState EIP-712 signature.
 
+## 3.19.0 release-specific considerations
+
+3.19.0 changes the MPC implementation and contract beyond a simple patch: it removes ECDSA presignatures, changes ForeignTx whitelist/enforcement behavior, and takes attestation expiry from collateral. It also includes a provider-matching fix. These changes make it especially important to validate the deployed contract state and node/contract version compatibility rather than relying on older testnet tutorials.
+
+Release notes: https://github.com/near/mpc/releases/tag/3.19.0
+
 ## Deployment and liveness gates
 
 - Read live signer contract state on NEAR testnet to confirm contract account, active ForeignTx domain ID, active Sign domain ID, protocol/scheme, participants, threshold, root keys and available chains.
@@ -73,7 +80,6 @@ The ForeignTx-purpose key and Sign-purpose key are distinct. Do not use the Fore
 - Read the current signer root key and derive the EVM address for the NEAR contract account plus fixed path. Do not copy a public key from a stale tutorial.
 - Use the method's live gas requirement and required attached deposit; do not hardcode tutorial values.
 - Test rejection for wrong payload hash, wrong log index, emitter/topic/data mismatch, missing transaction, non-finalized receipt, provider-quorum failure and callback timeout.
-- Pin a specific MPC release/tag or commit before coding the Borsh payload mirror. The inspected repository release is 3.18.0; do not build against floating main in production.
 
 ## Trust boundary
 
