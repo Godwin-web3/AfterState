@@ -9,3 +9,7 @@ near-mpc-state/
 
 # Local AfterState wallet material (never commit keys or backups)
 tools/wallet-setup/wallet-output/
+
+# Frontend dependencies and build output
+node_modules/
+frontend/dist/
