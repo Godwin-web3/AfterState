@@ -1,55 +1,57 @@
+use afterstate_near_foreign_tx_fixtures::{
+    build_base_foreign_tx_request, BaseEvmLogCandidate, CandidateError,
+};
 use near_mpc_contract_interface::types::{
-    EvmExtractedValue, EvmExtractor, EvmFinality, EvmLog, EvmRpcRequest, EvmTxId,
-    ExtractedValue, ForeignChainRpcRequest, ForeignTxPayloadVersion, ForeignTxSignPayload,
-    Hash160, Hash256,
+    DomainId, EvmExtractor, EvmFinality, ForeignChainRpcRequest, Hash256,
 };
 
-/// This vector is intentionally deterministic and checks our expected hash
-/// against the actual DTO/Borsh implementation from NEAR MPC 3.19.0.
+fn candidate() -> BaseEvmLogCandidate {
+    BaseEvmLogCandidate {
+        transaction_hash: [0x11; 32],
+        block_hash: [0x22; 32],
+        block_number: 100,
+        transaction_index: 3,
+        log_index: 7,
+        emitter: [0x33; 20],
+        removed: false,
+        data: "0xdeadbeef".to_string(),
+        topics: vec![[0x44; 32], [0x55; 32]],
+    }
+}
+
 #[test]
 fn base_sepolia_v1_payload_hash_matches_pinned_mpc_types() {
-    let tx_hash = [0x11; 32];
-    let block_hash = [0x22; 32];
+    let args = build_base_foreign_tx_request(candidate(), DomainId(7)).unwrap();
 
-    let request = ForeignChainRpcRequest::Base(EvmRpcRequest {
-        tx_id: EvmTxId(tx_hash),
-        extractors: [
-            EvmExtractor::BlockHash,
-            EvmExtractor::Log { log_index: 7 },
-        ]
-        .into(),
-        finality: EvmFinality::Finalized,
-    });
-
-    let log = EvmLog {
-        removed: false,
-        log_index: 7,
-        transaction_index: 3,
-        transaction_hash: Hash256(tx_hash),
-        block_hash: Hash256(block_hash),
-        block_number: 100,
-        address: Hash160([0x33; 20]),
-        data: "0xdeadbeef".to_string(),
-        topics: vec![Hash256([0x44; 32]), Hash256([0x55; 32])],
-    };
-
-    let payload = ForeignTxSignPayload::new(
-        ForeignTxPayloadVersion::V1,
-        request,
-        vec![
-            ExtractedValue::EvmExtractedValue(EvmExtractedValue::BlockHash(
-                Hash256(block_hash),
-            )),
-            ExtractedValue::EvmExtractedValue(EvmExtractedValue::Log(log)),
-        ],
-    );
-
-    // Borsh enum discriminants are one byte; the Base variant is index 6.
-    let bytes = borsh::to_vec(&payload).expect("Borsh bytes");
-    assert_eq!(hex::encode(&bytes), "0006111111111111111111111111111111111111111111111111111111111111111102000000000107000000000000000202000000010022222222222222222222222222222222222222222222222222222222222222220101000700000000000000030000000000000011111111111111111111111111111111111111111111111111111111111111112222222222222222222222222222222222222222222222222222222222222222640000000000000033333333333333333333333333333333333333330a000000307864656164626565660200000044444444444444444444444444444444444444444444444444444444444444445555555555555555555555555555555555555555555555555555555555555555");
-    let actual = payload.compute_msg_hash().expect("Borsh hash");
+    let actual = args.expected_payload_hash.expect("expected hash is mandatory");
     assert_eq!(
         hex::encode(actual.0),
         "9bc1f744d04ebee4e32a814c3742b5b7ded2cf0e1da23fa1689675b695d1616a"
+    );
+
+    match args.request {
+        ForeignChainRpcRequest::Base(request) => {
+            assert_eq!(request.tx_id.0, [0x11; 32]);
+            assert_eq!(request.finality, EvmFinality::Finalized);
+            assert_eq!(
+                request.extractors.as_slice(),
+                &[
+                    EvmExtractor::BlockHash,
+                    EvmExtractor::Log { log_index: 7 }
+                ]
+            );
+        }
+        other => panic!("wrong source chain request: {other:?}"),
+    }
+}
+
+#[test]
+fn removed_candidate_log_is_rejected_before_mpc_request() {
+    let mut candidate = candidate();
+    candidate.removed = true;
+
+    assert_eq!(
+        build_base_foreign_tx_request(candidate, DomainId(7)).unwrap_err(),
+        CandidateError::RemovedLog
     );
 }
