@@ -5,6 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
+serde = { version = "1", features = ["derive"] }
 borsh = "1.8.1"
 near-mpc-contract-interface = { git = "https://github.com/near/mpc", rev = "86e2cc4d124397ec81f436b11f48bf9b6dfd062e", package = "near-mpc-contract-interface" }
 
