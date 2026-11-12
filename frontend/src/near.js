@@ -57,13 +57,10 @@ export async function waitForNearOutcome(txHash, signerId, timeoutMs = 180000) {
         const reason = outcome.status?.Failure || failed?.outcome?.status?.Failure;
         throw new Error('NEAR adapter execution failed: ' + JSON.stringify(reason));
       }
-      const candidates = [
-        ...receipts.slice().reverse().map(item => item.outcome?.status),
-        outcome.status
-      ];
-      const success = candidates.find(status => status && Object.prototype.hasOwnProperty.call(status, 'SuccessValue'));
-      if (success) return outcome;
-      if (outcome.status?.SuccessValue && outcome.status.SuccessValue.length === 0) return outcome;
+      const finalReceiptStatus = receipts.slice().reverse()
+        .map(item => item.outcome?.status)
+        .find(status => status && (status.Failure || Object.prototype.hasOwnProperty.call(status, 'SuccessValue')));
+      if (finalReceiptStatus?.SuccessValue && finalReceiptStatus.SuccessValue.length > 0) return outcome;
     } catch (error) {
       if (/execution failed/i.test(error.message)) throw error;
       lastError = error;
