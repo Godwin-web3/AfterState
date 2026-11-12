@@ -24,14 +24,16 @@ Created → SourceFactAttested → ReadyToSettle → Settled. Failure/recovery s
 - contracts/ — EVM reference contracts
 - test/ — Foundry tests
 - spec/ — protocol and threat-model specifications
-- near/ — NEAR adapter research and integration specifications
+- near/ — NEAR adapter research, fixtures and integration specifications
 - docs/ — implementation notes and decisions
 
 ## Development
-Solidity 0.8.24, Foundry. The current CI workflow runs forge test -vvv. The last verified run passed 15 tests across two suites on commit 2a567b12ab4eb5b1c3fa37a65a25431b3729944a. See the successful run:
+Solidity 0.8.24, Foundry. The last verified Foundry run passed 15 tests across two suites on commit 2a567b12ab4eb5b1c3fa37a65a25431b3729944a. See:
 https://github.com/Godwin-web3/AfterState/actions/runs/43207215276
 
 The EVM reference includes an EIP-712 verifier with versioned signer keys, signer revocation, destination-registry binding and low-s signature checks; an agreement registry; global one-time settlement claims; and a pre-funded ERC-20 settlement adapter that checks exact sender/recipient balance deltas.
+
+The NEAR ForeignTx fixture crate is pinned to MPC 3.19.0 commit 86e2cc4d124397ec81f436b11f48bf9b6dfd062e and checks the canonical Borsh+SHA-256 payload hash against a deterministic Base Sepolia request/log vector.
 
 ## Non-goals for v0.1
 No arbitrary source-chain consensus proofs, arbitrary off-chain fact proofs, cross-chain atomicity, or universal EVM state-diff verification.
@@ -40,7 +42,7 @@ No arbitrary source-chain consensus proofs, arbitrary off-chain fact proofs, cro
 MIT. See LICENSE.
 
 ## NEAR integration status
-Base Sepolia (chain ID 84532) is present in the current NEAR MPC example testnet node configuration. This does not prove the live testnet signer contract currently advertises Base as available. The deployed ForeignTx domain, Sign domain, chain availability, provider quorum and root key must be checked against live testnet state before an end-to-end claim. See near/ARCHITECTURE.md and near/REQUEST_SCHEMA.md. No NEAR adapter is claimed as implemented yet.
+Base Sepolia (chain ID 84532) is present in the MPC 3.19.0 example testnet node configuration. This does not prove the live testnet signer contract currently advertises Base as available. The deployed ForeignTx domain, Sign domain, chain availability, provider quorum and root key must be checked against live testnet state before an end-to-end claim. See near/ARCHITECTURE.md and near/REQUEST_SCHEMA.md. No NEAR adapter is claimed as implemented yet.
 
 ## Security review
 See docs/SECURITY_REVIEW.md for implemented controls, trust boundaries, fixes and outstanding tests.
