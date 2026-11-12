@@ -2,7 +2,7 @@ use afterstate_near_foreign_tx_fixtures::{
     build_base_foreign_tx_request, BaseEvmLogCandidate, CandidateError,
 };
 use near_mpc_contract_interface::types::{
-    DomainId, EvmExtractor, EvmFinality, ForeignChainRpcRequest, Hash256,
+    DomainId, EvmExtractor, EvmFinality, ForeignChainRpcRequest,
 };
 
 fn candidate() -> BaseEvmLogCandidate {
