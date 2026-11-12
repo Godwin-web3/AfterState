@@ -382,7 +382,8 @@ export default function App() {
   </div>;
 }
 
-function validNearAccountId(value){return typeof value==='string' && (/^[a-f0-9]{64}$/i.test(value) || /^[a-z0-9_-]+(\.[a-z0-9_-]+)*$/.test(value));}\nfunction LockKeyholeIcon(){return <Shield size={13}/>}
+function validNearAccountId(value){return typeof value==='string' && (/^[a-f0-9]{64}$/i.test(value) || /^[a-z0-9_-]+(\.[a-z0-9_-]+)*$/.test(value));}
+function LockKeyholeIcon(){return <Shield size={13}/>}
 function Chain({mark,name,detail,kind}){return <div className="chain"><i className={kind}>{mark}</i><div><b>{name}</b><small>{detail}</small></div></div>}
 function Connector({label}){return <div className="connector"><i/><small>{label}</small></div>}
 function Metric({label,value,note}){return <div className="metric"><span>{label}</span><b>{value}</b><small>{note}</small></div>}
