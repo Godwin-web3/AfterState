@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+broadcast/
+cache/
+out/
+target/
+near-mpc-state/
