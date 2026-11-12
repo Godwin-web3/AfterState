@@ -4,9 +4,9 @@ Status: implementation review only; no external audit. EVM and NEAR components a
 
 ## Verified implementation
 
-Latest verified runs: [Foundry CI](https://github.com/Godwin-web3/AfterState/actions/runs/43240885726), [NEAR adapter CI + release WASM artifact](https://github.com/Godwin-web3/AfterState/actions/runs/43240294674), and [live MPC state query](https://github.com/Godwin-web3/AfterState/actions/runs/43240885721).
+Latest verified runs: [Foundry CI](https://github.com/Godwin-web3/AfterState/actions/runs/43241421852), [NEAR adapter CI + release WASM artifact](https://github.com/Godwin-web3/AfterState/actions/runs/43240294674), and [live MPC state query](https://github.com/Godwin-web3/AfterState/actions/runs/43240885721).
 
-- Foundry CI passed 20 tests on commit f3b439bb5bb17444d783a67415404a76dceae6d8.
+- Foundry CI passed 22 tests on commit b2c68d320047e4799bd81db698f221aaba634eb2.
 - NEAR CI passed 18 Rust tests, validated the live-state query script, checked the adapter for wasm32-unknown-unknown, built the release WASM and uploaded the artifact on commit 51b5ace90db77c96ab23933ee00593fde4875a31.
 - The uploaded adapter artifact archive SHA-256 is fd4e5251e78031283868bd66536a3c25e2054c2323a4de338cffbc616b15f455.
 - Live MPC state query confirmed Base support, a two-provider quorum, and separate live ForeignTx and Secp256k1 Sign domains on commit f3b439bb5bb17444d783a67415404a76dceae6d8.
