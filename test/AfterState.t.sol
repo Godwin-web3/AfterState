@@ -10,6 +10,8 @@ interface Vm {
     function sign(uint256 privateKey, bytes32 digest) external returns (uint8 v, bytes32 r, bytes32 s);
     function prank(address caller) external;
     function warp(uint256 timestamp) external;
+    function chainId(uint256 newChainId) external;
+    function etch(address target, bytes calldata code) external;
 }
 
 contract AfterStateTest {
@@ -174,6 +176,41 @@ contract AfterStateTest {
             )
         );
         require(!ok, "deactivated agreement ID was reused");
+    }
+
+
+    function testDigestMatchesRustEip712Fixture() public {
+        vm.chainId(84532);
+        vm.warp(1_700_000_000);
+
+        address verifierAddress = address(0x1001);
+        vm.etch(verifierAddress, type(AfterStateEIP712Verifier).runtimeCode);
+
+        IAfterStateVerifier.SourceFact memory fact = IAfterStateVerifier.SourceFact({
+            sourceChainId: 84532,
+            emitter: address(0xBEEF),
+            eventSchema: keccak256("Payment(address,address,uint256)"),
+            agreementId: keccak256("agreement-1"),
+            sourceBlockHash: keccak256("source-block"),
+            sourceTxHash: keccak256("source-transaction"),
+            sourceBlockNumber: 123456,
+            logIndex: 2,
+            asset: address(0x0A55E7),
+            amount: 500,
+            recipient: address(0xCAFE),
+            observedAt: 1_700_000_000,
+            expiresAt: 1_700_003_600,
+            keyVersion: 1,
+            agreementVersion: 1,
+            finalityPolicyId: keccak256("base-sepolia-finalized"),
+            nonce: keccak256("nonce-1")
+        });
+
+        bytes32 digest = AfterStateEIP712Verifier(verifierAddress).digestFor(address(0x2002), fact);
+        require(
+            digest == 0x2777312f3d33227093724b91f52fcfbe122f595e2f5dcdff63f2ed6e37e4c463,
+            "Rust EIP-712 digest mismatch"
+        );
     }
 
     function testWrongAmountIsRejected() public {
