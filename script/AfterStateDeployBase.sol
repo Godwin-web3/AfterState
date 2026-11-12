@@ -5,6 +5,7 @@ interface VmAfterStateDeploy {
     function addr(uint256 privateKey) external returns (address);
     function envAddress(string calldata name) external returns (address);
     function envUint(string calldata name) external returns (uint256);
+    function envBytes32(string calldata name) external returns (bytes32);
     function getChainId() external view returns (uint256);
     function getNonce(address account) external view returns (uint64);
     function startBroadcast(uint256 privateKey) external;
