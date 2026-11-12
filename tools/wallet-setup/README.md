@@ -21,13 +21,18 @@ This is a small project utility, not a substitute for a hardware wallet or a pro
 
 ## Run
 
-Requires Node.js 20 or newer.
+Requires Node.js 20 or newer. On Android, Termux can provide a local terminal and Node.js runtime:
 
 ```sh
-cd tools/wallet-setup
+pkg update
+pkg install nodejs-lts git
+ git clone https://github.com/Godwin-web3/AfterState.git
+cd AfterState/tools/wallet-setup
 npm install
 npm run generate
 ```
+
+On a computer, clone the repository and run the same three project commands from `tools/wallet-setup`. Do not run this in a hosted online IDE or cloud shell; generate the keys on a device you control.
 
 The command creates:
 
