@@ -31,3 +31,10 @@ jobs:
           cargo test --manifest-path near/foreign-tx-fixtures/Cargo.toml
           cargo test --manifest-path near/adapter/Cargo.toml
           cargo check --manifest-path near/adapter/Cargo.toml --target wasm32-unknown-unknown
+          cargo build --release --manifest-path near/adapter/Cargo.toml --target wasm32-unknown-unknown
+      - name: Upload NEAR adapter WASM
+        uses: actions/upload-artifact@v4
+        with:
+          name: afterstate-near-adapter-wasm
+          path: target/wasm32-unknown-unknown/release/afterstate_near_adapter.wasm
+          if-no-files-found: error
