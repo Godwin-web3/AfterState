@@ -10,11 +10,11 @@ AfterState is an execution-assurance protocol for cross-chain workflows. It bind
 
 1. AfterStateSourceEmitter transfers an exact ERC-20 amount to a recipient on Base Sepolia and emits a typed SourcePayment log.
 2. The NEAR adapter decodes that event and validates it against one immutable configured agreement.
-3. It builds the MPC 3.19.0 ForeignTx request with Finalized finality, BlockHash + exact Log extractors, and mandatory expected_payload_hash.
+3. It builds the MPC 3.18.0 ForeignTx request with Finalized finality, BlockHash + exact Log extractors, and mandatory expected_payload_hash.
 4. After MPC verifies the request, the NEAR adapter computes the exact AfterState EIP-712 digest and calls the separate Sign-purpose domain using the fixed path afterstate-v1.
 5. The NEAR adapter converts the MPC secp256k1 response into canonical EVM r||s||v bytes. The EVM verifier authenticates the configured signer version; the registry enforces agreement constraints and one-time source-fact consumption.
 
-The cross-language EIP-712 digest is tested against the Solidity verifier. The ForeignTx request and Borsh payload are pinned to the NEAR MPC 3.19.0 interface commit 86e2cc4d124397ec81f436b11f48bf9b6dfd062e. The live testnet signer contract reported version 3.18.0 in the 2026-11-12 state snapshot.
+The cross-language EIP-712 digest is tested against the Solidity verifier. The ForeignTx request and Borsh payload are pinned to the NEAR MPC 3.18.0 interface commit e691bdb98d68dcf74653da58d043453a6318765f. The live testnet signer contract reported version 3.18.0 in the 2026-11-12 state snapshot.
 
 ## CI status
 
