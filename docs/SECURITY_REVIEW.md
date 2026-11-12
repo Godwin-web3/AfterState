@@ -24,7 +24,7 @@ The Foundry CI run on commit 2a567b12ab4eb5b1c3fa37a65a25431b3729944a compiled S
 5. The registry owner controls agreements, verifier replacement and settlement-adapter replacement. Production deployment needs governance/timelock or a constrained immutable configuration.
 6. The source-chain event schema is represented by a topic/schema hash and must be decoded/validated exactly by the attestation producer.
 7. Reorg handling depends on the source-observation system's finality policy. Preventing duplicate log identity does not prove finality.
-8. The NEAR adapter, exact Borsh payload builder, MPC callbacks and Chain Signatures EIP-712 signing step are not implemented.
+8. The NEAR ForeignTx request builder and MPC verification callback are implemented and WASM-target checked. The adapter does not yet decode/validate the AfterState source event against an agreement, compute the exact AfterState EIP-712 digest, or call Chain Signatures to issue the destination signature.
 
 ## Fixed during implementation
 
@@ -42,6 +42,7 @@ The Foundry CI run on commit 2a567b12ab4eb5b1c3fa37a65a25431b3729944a compiled S
 - Fuzz source facts across all agreement fields and timestamps.
 - Byte-for-byte Borsh payload hash fixtures against pinned NEAR MPC 3.19.0 types (one deterministic Base EVM fixture now passes in CI).
 - End-to-end NEAR testnet tests for wrong payload hash, malformed/missing/removed log, wrong log index, non-finalized receipt, provider-quorum failure and callback timeout.
+- Application-event decoding tests and Chain Signatures EIP-712 signature recovery against the configured EVM verifier.
 - Verify that the NEAR contract uses a fixed derivation path and never signs arbitrary caller-supplied digests.
 
 ## NEAR integration references
