@@ -11,8 +11,9 @@ mkdir -p "$OUTPUT_DIR"
 
 view_call() {
   local method="$1"
-  local args_json="${2:-{}}"
+  local args_json="${2-}"
   local args_b64
+  if [[ -z "$args_json" ]]; then args_json='{}'; fi
   args_json="$(printf '%s' "$args_json" | jq -c .)"
   args_b64="$(printf '%s' "$args_json" | base64 -w0)"
   local payload
