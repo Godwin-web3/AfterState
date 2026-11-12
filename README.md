@@ -18,12 +18,14 @@ The cross-language EIP-712 digest is tested against the Solidity verifier. The F
 
 ## CI status
 
-- Foundry: **20 tests passed, 0 failed** on commit `1a9c137a015ad214c67eb5951b4cc7e4b3da80fd`.
-  https://github.com/Godwin-web3/AfterState/actions/runs/43239292839
-- NEAR: **16 Rust tests passed**, the live-state query script passed shell validation, the adapter passed WASM checks, and the release WASM artifact uploaded successfully on commit `094cba9f2c4525a18b54bf395473adceac0a1d71`.
-  https://github.com/Godwin-web3/AfterState/actions/runs/43238949473
-  Artifact: [afterstate-near-adapter-wasm](https://github.com/Godwin-web3/AfterState/actions/runs/43238949473)
-  Artifact archive SHA-256: `c5772f86d40c4cdecc95e66340dc2c1fe4c6d38cb9d60c53c56309ff9fe7e50f`.
+- Foundry: **20 tests passed, 0 failed** on commit `f3b439bb5bb17444d783a67415404a76dceae6d8`.
+  https://github.com/Godwin-web3/AfterState/actions/runs/43240885726
+- NEAR adapter: **18 Rust tests passed**, live-state query script validation passed, WASM checks passed, and the release WASM artifact uploaded on commit `51b5ace90db77c96ab23933ee00593fde4875a31`.
+  https://github.com/Godwin-web3/AfterState/actions/runs/43240294674
+  Artifact: [afterstate-near-adapter-wasm](https://github.com/Godwin-web3/AfterState/actions/runs/43240294674)
+  Artifact archive SHA-256: `fd4e5251e78031283868bd66536a3c25e2054c2323a4de338cffbc616b15f455`.
+- Live MPC state: read-only testnet query passed on commit `f3b439bb5bb17444d783a67415404a76dceae6d8`, confirming Base availability, provider quorum 2, and live ForeignTx / Secp256k1 Sign domains.
+  https://github.com/Godwin-web3/AfterState/actions/runs/43240885721
 
 ## Important constraints
 
