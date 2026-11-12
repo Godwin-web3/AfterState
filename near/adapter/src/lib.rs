@@ -108,7 +108,11 @@ impl AfterStateNearAdapter {
             mpc_call_gas_tgas >= MIN_MPC_REQUEST_GAS_TGAS,
             "MPC ForeignTx call gas is below the live contract minimum"
         );
-        require!(foreign_callback_gas_tgas > 0, "ForeignTx callback gas must be non-zero");
+        require!(
+            foreign_callback_gas_tgas > sign_call_gas_tgas
+                && foreign_callback_gas_tgas - sign_call_gas_tgas > signature_callback_gas_tgas,
+            "ForeignTx callback gas must cover the follow-on Sign call and signature callback"
+        );
         require!(
             sign_call_gas_tgas >= MIN_MPC_REQUEST_GAS_TGAS,
             "MPC Sign call gas is below the live contract minimum"
@@ -352,14 +356,16 @@ mod adapter_tests {
     use std::str::FromStr;
 
     fn construct(foreign_domain: u64, sign_domain: u64) -> AfterStateNearAdapter {
-        construct_with_gas(foreign_domain, sign_domain, 20, 20)
+        construct_with_gas(foreign_domain, sign_domain, 20, 60, 20, 30)
     }
 
     fn construct_with_gas(
         foreign_domain: u64,
         sign_domain: u64,
         foreign_call_gas: u64,
+        foreign_callback_gas: u64,
         sign_call_gas: u64,
+        signature_callback_gas: u64,
     ) -> AfterStateNearAdapter {
         testing_env!(
             VMContextBuilder::new()
@@ -374,9 +380,9 @@ mod adapter_tests {
             foreign_domain,
             sign_domain,
             foreign_call_gas,
-            20,
+            foreign_callback_gas,
             sign_call_gas,
-            20,
+            signature_callback_gas,
             [1; 20],
             [2; 32],
             1,
@@ -408,13 +414,19 @@ mod adapter_tests {
 
     #[test]
     fn constructor_rejects_foreign_tx_gas_below_live_mpc_minimum() {
-        let result = catch_unwind(AssertUnwindSafe(|| construct_with_gas(10, 11, 14, 20)));
+        let result = catch_unwind(AssertUnwindSafe(|| construct_with_gas(10, 11, 14, 60, 20, 30)));
         assert!(result.is_err(), "underfunded ForeignTx MPC call was accepted");
     }
 
     #[test]
     fn constructor_rejects_sign_gas_below_live_mpc_minimum() {
-        let result = catch_unwind(AssertUnwindSafe(|| construct_with_gas(10, 11, 20, 14)));
+        let result = catch_unwind(AssertUnwindSafe(|| construct_with_gas(10, 11, 20, 60, 14, 30)));
         assert!(result.is_err(), "underfunded Sign MPC call was accepted");
+    }
+
+    #[test]
+    fn constructor_rejects_foreign_callback_that_cannot_schedule_sign_promises() {
+        let result = catch_unwind(AssertUnwindSafe(|| construct_with_gas(10, 11, 20, 50, 20, 30)));
+        assert!(result.is_err(), "callback gas budget cannot cover follow-on promises");
     }
 }
