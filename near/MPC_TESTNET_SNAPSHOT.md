@@ -4,6 +4,7 @@ Observed: 2026-11-12 14:48 UTC
 Network: NEAR testnet  
 MPC account: `v1.signer-prod.testnet`  
 Deployed MPC version: `3.18.0`  
+Pinned interface source: [NEAR MPC 3.18.0](https://github.com/near/mpc/tree/e691bdb98d68dcf74653da58d043453a6318765f)  
 Keyset epoch: `27`  
 Threshold: `11 of 17`
 
