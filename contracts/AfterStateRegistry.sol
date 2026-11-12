@@ -76,6 +76,7 @@ contract AfterStateRegistry {
             || fact.eventSchema != a.eventSchema || fact.asset != a.asset
             || fact.recipient != a.recipient || fact.amount < a.minAmount || fact.amount > a.maxAmount
             || fact.sourceBlockHash == bytes32(0) || fact.sourceTxHash == bytes32(0)
+            || fact.sourceBlockNumber == 0 || fact.expiresAt > a.deadline
             || fact.nonce == bytes32(0) || fact.agreementVersion != a.version
             || fact.finalityPolicyId == bytes32(0) || fact.observedAt > block.timestamp
             || fact.expiresAt <= fact.observedAt) revert InvalidFact();
