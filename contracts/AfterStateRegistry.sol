@@ -61,7 +61,7 @@ contract AfterStateRegistry {
         uint128 minAmount, uint128 maxAmount, uint64 deadline
     ) external onlyOwner {
         if (agreementId == bytes32(0) || sourceChainId == 0 || sourceEmitter == address(0)
-            || eventSchema == bytes32(0) || recipient == address(0) || minAmount == 0
+            || eventSchema == bytes32(0) || asset == address(0) || recipient == address(0) || minAmount == 0
             || maxAmount < minAmount || deadline <= block.timestamp) revert InvalidAgreement();
         if (agreementEverCreated[agreementId]) revert AgreementExists();
         agreementEverCreated[agreementId] = true;
