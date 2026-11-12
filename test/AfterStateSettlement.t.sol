@@ -113,7 +113,7 @@ contract AfterStateSettlementTest {
         require(!ok, "unattested settlement succeeded");
     }
 
-    function testFailedSettlementDoesNotBurnAcceptedFact() public {
+    function testRetryAfterUnderfundedSettlement() public {
         bytes32 nonce = keccak256("settlement-retry-after-failure");
         _attest(nonce);
         token.mint(address(settlement), 499);
