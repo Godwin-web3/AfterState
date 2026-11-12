@@ -12,6 +12,7 @@ on:
     branches: [main]
     paths:
       - "near/foreign-tx-fixtures/**"
+      - "near/adapter/**"
       - ".github/workflows/near.yml"
 
 permissions:
@@ -24,4 +25,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - name: Run pinned MPC serialization fixtures
-        run: cargo test --manifest-path near/foreign-tx-fixtures/Cargo.toml
+        run: |
+          cargo test --manifest-path near/foreign-tx-fixtures/Cargo.toml
+          cargo check --manifest-path near/adapter/Cargo.toml
