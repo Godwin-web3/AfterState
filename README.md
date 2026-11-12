@@ -26,7 +26,7 @@ The cross-language EIP-712 digest is tested against the Solidity verifier. The F
 ## Important constraints
 
 - Base Sepolia (84532) appears in the MPC 3.19.0 example testnet node configuration; live signer contract availability and provider quorum still require a live state query.
-- The ForeignTx domain ID and Sign domain ID are separate and must be read from the deployed contract. Neither is hardcoded. The manual NEAR MPC Testnet State workflow queries contract state, domains, available chains, provider configuration and gas settings; with the deployed adapter account and Sign domain ID, it also derives the EVM signer address for afterstate-v1.
+- The ForeignTx domain ID and Sign domain ID are separate and must be read from the deployed contract. Neither is hardcoded. The manual [NEAR MPC Testnet State workflow](https://github.com/Godwin-web3/AfterState/actions/workflows/near-mpc-state.yml) queries contract state, domains, available chains, provider configuration and gas settings; with the deployed adapter account and Sign domain ID, it also derives the EVM signer address for afterstate-v1.
 - The EVM verifier's signer version is an AfterState version, not the MPC domain ID. The derived EVM address for the NEAR adapter account and fixed path must be derived and configured explicitly.
 - v0.1 assumes the source and destination ERC-20 use the same address and amount units. Cross-chain asset mapping and decimal conversion are not implemented.
 - SourcePayment is an irreversible source-chain payment, not escrow. Destination settlement is not atomic with it; there is no automatic refund if destination execution fails.
