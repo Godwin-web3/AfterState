@@ -20,9 +20,10 @@ The cross-language EIP-712 digest is tested against the Solidity verifier. The F
 
 - Foundry: **20 tests passed, 0 failed** on commit `1a9c137a015ad214c67eb5951b4cc7e4b3da80fd`.
   https://github.com/Godwin-web3/AfterState/actions/runs/43239292839
-- NEAR adapter: fixture tests, adapter unit tests and WASM checks passed on commit `15958e60b6f037bfc317a5d30b12e19d2a482229`.
-  https://github.com/Godwin-web3/AfterState/actions/runs/43211514663
-- The expanded NEAR workflow now also validates the live-state query script and builds the release WASM. That run is still in progress on commit `094cba9f2c4525a18b54bf395473adceac0a1d71`; do not treat the expanded workflow as green until it completes.
+- NEAR: **16 Rust tests passed**, the live-state query script passed shell validation, the adapter passed WASM checks, and the release WASM artifact uploaded successfully on commit `094cba9f2c4525a18b54bf395473adceac0a1d71`.
+  https://github.com/Godwin-web3/AfterState/actions/runs/43238949473
+  Artifact: [afterstate-near-adapter-wasm](https://github.com/Godwin-web3/AfterState/actions/runs/43238949473)
+  Artifact archive SHA-256: `c5772f86d40c4cdecc95e66340dc2c1fe4c6d38cb9d60c53c56309ff9fe7e50f`.
 
 ## Important constraints
 
