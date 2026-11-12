@@ -220,7 +220,7 @@ fn decode_u32_word(word: &[u8]) -> Result<u32, SourcePaymentDecodeError> {
     Ok(u32::from_be_bytes(value))
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Eip712SourceFact {
     pub source_chain_id: u64,
     pub emitter: [u8; 20],
