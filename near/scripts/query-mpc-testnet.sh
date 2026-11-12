@@ -21,15 +21,26 @@ view_call() {
     --arg args "$args_b64" \
     '{jsonrpc:"2.0",id:"afterstate-state-check",method:"query",params:{request_type:"call_function",finality:"final",account_id:$account,method_name:$method,args_base64:$args}}')"
   local response
-  response="$(curl --fail --silent --show-error \
-    --connect-timeout 10 --max-time 45 \
-    -H 'Content-Type: application/json' \
-    -d "$payload" "$RPC_URL")"
-  if printf '%s' "$response" | jq -e '.error' >/dev/null; then
-    printf '%s\n' "$response" >&2
-    return 1
-  fi
-  printf '%s' "$response" | jq -er '[.result.result[]] | implode'
+  local attempt
+  for attempt in 1 2 3; do
+    response="$(curl --fail --silent --show-error \
+      --connect-timeout 10 --max-time 45 --retry 2 --retry-all-errors --retry-delay 2 \
+      -H 'Content-Type: application/json' \
+      -d "$payload" "$RPC_URL")"
+    if printf '%s' "$response" | jq -e '.error' >/dev/null; then
+      printf 'NEAR view %s returned RPC error on attempt %s:\n%s\n' "$method" "$attempt" "$response" >&2
+      sleep 2
+      continue
+    fi
+    if printf '%s' "$response" | jq -e '.result.result | type == "array"' >/dev/null; then
+      printf '%s' "$response" | jq -er '[.result.result[]] | implode'
+      return 0
+    fi
+    printf 'NEAR view %s returned an unexpected response on attempt %s:\n%s\n' "$method" "$attempt" "$response" >&2
+    sleep 2
+  done
+  printf 'NEAR view %s failed after retries\n' "$method" >&2
+  return 1
 }
 
 view_call version '{}' > "$OUTPUT_DIR/version.json"
