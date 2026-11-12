@@ -1,0 +1,11 @@
+[package]
+name = "afterstate-near-foreign-tx-fixtures"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+near-mpc-contract-interface = { git = "https://github.com/near/mpc", rev = "86e2cc4d124397ec81f436b11f48bf9b6dfd062e", package = "near-mpc-contract-interface" }
+
+[dev-dependencies]
+hex = "0.4"
