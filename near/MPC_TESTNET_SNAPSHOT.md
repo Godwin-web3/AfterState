@@ -1,6 +1,6 @@
 # Live NEAR MPC testnet snapshot
 
-Observed: 2026-11-12 14:42 UTC  
+Observed: 2026-11-12 14:48 UTC  
 Network: NEAR testnet  
 MPC account: `v1.signer-prod.testnet`  
 Deployed MPC version: `3.18.0`  
