@@ -43,7 +43,7 @@ The destination_chain_id must equal the EVM chain ID. verifier_contract must be 
 
 ## Build and tests
 
-The NEAR workflow runs the Rust fixture tests, checks the adapter for wasm32-unknown-unknown, builds the release WASM and uploads it as the `afterstate-near-adapter-wasm` artifact. Latest successful artifact: [NEAR CI run](https://github.com/Godwin-web3/AfterState/actions/runs/43212159490).
+The NEAR workflow runs the Rust fixture tests, adapter unit tests, validates the live-state query script, checks the adapter for wasm32-unknown-unknown, builds the release WASM and uploads it as the `afterstate-near-adapter-wasm` artifact. Latest successful run: [NEAR CI](https://github.com/Godwin-web3/AfterState/actions/runs/43238949473). The uploaded artifact archive SHA-256 is `c5772f86d40c4cdecc95e66340dc2c1fe4c6d38cb9d60c53c56309ff9fe7e50f`.
 
 Local build:
 
