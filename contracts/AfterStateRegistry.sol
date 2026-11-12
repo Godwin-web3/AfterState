@@ -34,6 +34,8 @@ contract AfterStateRegistry {
     mapping(bytes32 => Agreement) public agreements;
     mapping(bytes32 => bool) public consumedNonces;
     mapping(bytes32 => bool) public consumedSourceLogs;
+    mapping(bytes32 => bool) public agreementEverCreated;
+    mapping(bytes32 => IAfterStateVerifier.SourceFact) private acceptedFacts;
 
     event AgreementCreated(bytes32 indexed agreementId, uint256 sourceChainId, uint256 destinationChainId);
     event SourceFactConsumed(bytes32 indexed agreementId, bytes32 indexed nonce, bytes32 indexed sourceTxHash, uint256 logIndex);
@@ -56,7 +58,8 @@ contract AfterStateRegistry {
         if (agreementId == bytes32(0) || sourceChainId == 0 || sourceEmitter == address(0)
             || eventSchema == bytes32(0) || recipient == address(0) || minAmount == 0
             || maxAmount < minAmount || deadline <= block.timestamp) revert InvalidAgreement();
-        if (agreements[agreementId].active) revert AgreementExists();
+        if (agreementEverCreated[agreementId]) revert AgreementExists();
+        agreementEverCreated[agreementId] = true;
         agreements[agreementId] = Agreement(sourceChainId, block.chainid, sourceEmitter,
             eventSchema, asset, recipient, minAmount, maxAmount, deadline, true);
         emit AgreementCreated(agreementId, sourceChainId, block.chainid);
@@ -82,7 +85,19 @@ contract AfterStateRegistry {
         if (!verifier.verify(fact, proof)) revert InvalidFact();
         consumedNonces[nonceKey] = true;
         consumedSourceLogs[logKey] = true;
+        acceptedFacts[nonceKey] = fact;
         emit SourceFactConsumed(fact.agreementId, fact.nonce, fact.sourceTxHash, fact.logIndex);
+    }
+
+    /// @notice Returns the exact source fact accepted for an agreement nonce.
+    /// @dev Consumers must still apply their own destination postconditions.
+    function getAcceptedFact(bytes32 agreementId, bytes32 nonce)
+        external
+        view
+        returns (IAfterStateVerifier.SourceFact memory fact, bool exists)
+    {
+        bytes32 nonceKey = keccak256(abi.encode(block.chainid, address(this), agreementId, nonce));
+        return (acceptedFacts[nonceKey], consumedNonces[nonceKey]);
     }
 
     function deactivateAgreement(bytes32 agreementId) external onlyOwner {
