@@ -13,6 +13,7 @@ view_call() {
   local method="$1"
   local args_json="${2:-{}}"
   local args_b64
+  args_json="$(printf '%s' "$args_json" | jq -c .)"
   args_b64="$(printf '%s' "$args_json" | base64 -w0)"
   local payload
   payload="$(jq -n \
