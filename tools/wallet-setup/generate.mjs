@@ -3,7 +3,6 @@ import { createCipheriv, randomBytes, scrypt as scryptCallback } from "node:cryp
 import { promisify } from "node:util";
 import { mkdir, open, access } from "node:fs/promises";
 import path from "node:path";
-import readline from "node:readline";
 import { Wallet } from "ethers";
 import { generateSeedPhrase } from "near-seed-phrase";
 import bs58 from "bs58";
