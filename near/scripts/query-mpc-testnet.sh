@@ -34,6 +34,8 @@ view_call version '{}' > "$OUTPUT_DIR/version.json"
 view_call config '{}' > "$OUTPUT_DIR/config.json"
 view_call state '{}' > "$OUTPUT_DIR/state.json"
 view_call get_available_foreign_chains '{}' > "$OUTPUT_DIR/available_foreign_chains.json"
+view_call get_foreign_chains_configs '{}' > "$OUTPUT_DIR/foreign_chains_configs.json"
+view_call allowed_foreign_chain_providers '{}' > "$OUTPUT_DIR/allowed_foreign_chain_providers.json"
 
 if [[ -n "$SIGN_DOMAIN_ID" ]]; then
   public_key_args="$(jq -n --argjson domain_id "$SIGN_DOMAIN_ID" '{domain_id:$domain_id}')"
@@ -46,6 +48,7 @@ if [[ -n "$SIGN_DOMAIN_ID" ]]; then
       --argjson domain_id "$SIGN_DOMAIN_ID" \
       '{path:$path,predecessor:$predecessor,domain_id:$domain_id}')"
     view_call derived_public_key "$derived_args" > "$OUTPUT_DIR/derived_evm_public_key.json"
+    cargo run --quiet --manifest-path near/foreign-tx-fixtures/Cargo.toml --bin derive-evm-address -- "$OUTPUT_DIR/derived_evm_public_key.json" > "$OUTPUT_DIR/derived_evm_address.txt"
   fi
 fi
 
@@ -57,7 +60,9 @@ jq -n \
   --slurpfile config "$OUTPUT_DIR/config.json" \
   --slurpfile state "$OUTPUT_DIR/state.json" \
   --slurpfile chains "$OUTPUT_DIR/available_foreign_chains.json" \
-  '{mpc_account:$mpc_account,adapter_account:$adapter_account,sign_domain_id:$sign_domain_id,version:$version[0],config:$config[0],state:$state[0],available_foreign_chains:$chains[0]}' \
+  --slurpfile foreign_configs "$OUTPUT_DIR/foreign_chains_configs.json" \
+  --slurpfile allowed_providers "$OUTPUT_DIR/allowed_foreign_chain_providers.json" \
+  '{mpc_account:$mpc_account,adapter_account:$adapter_account,sign_domain_id:$sign_domain_id,version:$version[0],config:$config[0],state:$state[0],available_foreign_chains:$chains[0],foreign_chains_configs:$foreign_configs[0],allowed_foreign_chain_providers:$allowed_providers[0]}' \
   > "$OUTPUT_DIR/report.json"
 
 if [[ -f "$OUTPUT_DIR/sign_domain_public_key.json" ]]; then
@@ -67,7 +72,8 @@ if [[ -f "$OUTPUT_DIR/sign_domain_public_key.json" ]]; then
 fi
 
 if [[ -f "$OUTPUT_DIR/derived_evm_public_key.json" ]]; then
-  jq --slurpfile key "$OUTPUT_DIR/derived_evm_public_key.json" '. + {derived_evm_public_key:$key[0]}' \
+  jq --slurpfile key "$OUTPUT_DIR/derived_evm_public_key.json" --rawfile address "$OUTPUT_DIR/derived_evm_address.txt" \
+    '. + {derived_evm_public_key:$key[0],derived_evm_address:($address | rtrimstr("\\n"))}' \
     "$OUTPUT_DIR/report.json" > "$OUTPUT_DIR/report.tmp"
   mv "$OUTPUT_DIR/report.tmp" "$OUTPUT_DIR/report.json"
 fi
