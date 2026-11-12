@@ -38,7 +38,7 @@ The existing EVM `AfterStateEIP712Verifier` can accept this derived MPC key once
 ## Hard integration gates
 
 - Confirm the exact deployed signer contract and ForeignTx domain on NEAR testnet; do not assume mainnet interface details are available identically on testnet.
-- Confirm Sepolia (or chosen EVM testnet) appears in the live available foreign-chain set.
+- The current MPC repository's example testnet node configuration includes Base Sepolia (chain ID 84532) providers; it does not establish that Ethereum Sepolia is configured or that Base is currently enabled in the live contract's available foreign-chain set. Prefer Base Sepolia for the first prototype only after confirming live availability.
 - Confirm the configured EVM finality selector and provider quorum behavior.
 - Validate that the requested log index extraction returns the full canonical log and that the MPC's extracted payload binds transaction ID, finality, block hash and exact log.
 - Use the official SDK for response signature verification and payload construction; pin a released version or commit.
