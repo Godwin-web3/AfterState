@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>AfterState Wallet Setup</title>
+<style>
+:root{color-scheme:dark;font:16px system-ui;background:#0b1020;color:#e8edf7}body{max-width:720px;margin:0 auto;padding:28px 18px}h1{font-size:1.7rem}.panel{background:#131c31;border:1px solid #293754;border-radius:14px;padding:18px;margin:18px 0}p{line-height:1.55;color:#b9c4d8}label{font-weight:600}input{width:100%;box-sizing:border-box;padding:12px;margin:8px 0 14px;background:#0b1020;color:white;border:1px solid #405273;border-radius:8px}button{background:#8ab4ff;color:#081326;border:0;border-radius:9px;padding:12px 18px;font-weight:700;font-size:1rem}button:disabled{opacity:.5}pre{white-space:pre-wrap;word-break:break-word;background:#080d18;padding:12px;border-radius:8px}.danger{color:#ffb4ab}.ok{color:#a6e3a1}.hidden{display:none}
+</style></head><body>
+<h1>AfterState wallet setup</h1>
+<p>Generate a dedicated EVM deployer key and NEAR Ed25519 keypair locally in this browser. Private keys are not uploaded to AfterState or Vercel. This page downloads only an AES-256-GCM encrypted backup.</p>
+<div class="panel"><p class="danger"><b>Security notice:</b> Use a device you control. This page loads pinned cryptographic libraries from esm.sh. For meaningful funds, use a well-reviewed wallet. Never share your recovery material or backup password.</p>
+<label for="pw">Backup password (minimum 14 characters)</label><input id="pw" type="password" autocomplete="new-password" minlength="14">
+<label for="pw2">Confirm password</label><input id="pw2" type="password" autocomplete="new-password" minlength="14">
+<button id="go">Generate wallets locally</button><p id="status" aria-live="polite"></p></div>
+<div id="result" class="panel hidden"><h2>Public addresses</h2><p><b>EVM deployer — Base Sepolia (84532)</b></p><pre id="evm"></pre><p><b>NEAR implicit account ID — testnet</b></p><pre id="near"></pre><p class="ok">Encrypted backup is ready. Download it and store it offline.</p><button id="backup">Download encrypted backup</button><p class="danger">The EVM address is not funded. The NEAR implicit account ID is derived from its public key but is not registered/funded yet. Do not send funds until activation requirements are confirmed.</p></div>
+<script type="module">
+import { secp256k1 } from 'https://esm.sh/@noble/curves@1.9.7/secp256k1';
+import { ed25519 } from 'https://esm.sh/@noble/curves@1.9.7/ed25519';
+import { keccak_256 } from 'https://esm.sh/@noble/hashes@1.8.0/sha3';
+import { bytesToHex } from 'https://esm.sh/@noble/hashes@1.8.0/utils';
+import { base58 } from 'https://esm.sh/@scure/base@1.2.6';
+const $=id=>document.getElementById(id), enc=new TextEncoder(); let backupBlob=null;
+function rand(n=32){const b=new Uint8Array(n);crypto.getRandomValues(b);return b}
+function makeEvm(){let sk;do{sk=rand()}while(!secp256k1.utils.isValidPrivateKey(sk));const pub=secp256k1.getPublicKey(sk,false).slice(1);return {address:'0x'+bytesToHex(keccak_256(pub).slice(-20)),privateKey:'0x'+bytesToHex(sk),chain:'Base Sepolia',chainId:84532}}
+function makeNear(){const seed=rand(),pub=ed25519.getPublicKey(seed),secret=new Uint8Array(64);secret.set(seed);secret.set(pub,32);return {implicitAccountId:bytesToHex(pub),publicKey:'ed25519:'+base58.encode(pub),secretKey:'ed25519:'+base58.encode(secret),curve:'Ed25519'}}
+async function seal(obj,password){const salt=rand(),iv=rand(12),material=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveKey']),key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:310000,hash:'SHA-256'},material,{name:'AES-GCM',length:256},false,['encrypt']),ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(JSON.stringify(obj)));return {format:'AfterState encrypted wallet backup v1',kdf:'PBKDF2-SHA-256',iterations:310000,cipher:'AES-256-GCM',salt:bytesToHex(salt),iv:bytesToHex(iv),ciphertext:bytesToHex(new Uint8Array(ct))}}
+$('go').addEventListener('click',async()=>{const p=$('pw').value;if(p.length<14||p!==$('pw2').value){$('status').textContent='Passwords must match and contain at least 14 characters.';return}$('go').disabled=true;$('status').textContent='Generating keys in this browser…';try{const evm=makeEvm(),near=makeNear(),payload={createdAt:new Date().toISOString(),purpose:'AfterState testnet only',evm,near};const sealed=await seal(payload,p);backupBlob=new Blob([JSON.stringify(sealed,null,2)],{type:'application/json'});$('evm').textContent=evm.address;$('near').textContent=near.implicitAccountId;$('result').classList.remove('hidden');$('status').textContent='Generated. Download your encrypted backup now.';payload.evm.privateKey='';payload.near.secretKey=''}catch(e){$('status').textContent='Generation failed: '+String(e)}finally{$('go').disabled=false}});
+$('backup').addEventListener('click',()=>{if(!backupBlob)return;const a=document.createElement('a'),u=URL.createObjectURL(backupBlob);a.href=u;a.download='afterstate-wallet-backup.encrypted.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)});
+</script></body></html>
