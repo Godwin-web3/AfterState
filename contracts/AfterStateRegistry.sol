@@ -26,6 +26,7 @@ contract AfterStateRegistry {
         uint128 minAmount;
         uint128 maxAmount;
         uint64 deadline;
+        uint32 version;
         bool active;
     }
 
@@ -61,7 +62,7 @@ contract AfterStateRegistry {
         if (agreementEverCreated[agreementId]) revert AgreementExists();
         agreementEverCreated[agreementId] = true;
         agreements[agreementId] = Agreement(sourceChainId, block.chainid, sourceEmitter,
-            eventSchema, asset, recipient, minAmount, maxAmount, deadline, true);
+            eventSchema, asset, recipient, minAmount, maxAmount, deadline, 1, true);
         emit AgreementCreated(agreementId, sourceChainId, block.chainid);
     }
 
@@ -75,7 +76,8 @@ contract AfterStateRegistry {
             || fact.eventSchema != a.eventSchema || fact.asset != a.asset
             || fact.recipient != a.recipient || fact.amount < a.minAmount || fact.amount > a.maxAmount
             || fact.sourceBlockHash == bytes32(0) || fact.sourceTxHash == bytes32(0)
-            || fact.nonce == bytes32(0) || fact.observedAt > block.timestamp
+            || fact.nonce == bytes32(0) || fact.agreementVersion != a.version
+            || fact.finalityPolicyId == bytes32(0) || fact.observedAt > block.timestamp
             || fact.expiresAt <= fact.observedAt) revert InvalidFact();
 
         bytes32 nonceKey = keccak256(abi.encode(block.chainid, address(this), fact.agreementId, fact.nonce));
