@@ -10,7 +10,7 @@ import {AfterStateDeployBase} from "./AfterStateDeployBase.sol";
 ///      both Base Sepolia and Ethereum Sepolia using the same account nonce.
 ///      This produces the same token address on both chains.
 contract DeployBaseSepolia is AfterStateDeployBase {
-    function run() external returns (address tokenAddress, address emitterAddress) {
+    function run() external returns (address tokenAddress, address emitterAddress, bytes32 tokenCodeHash) {
         require(vm.getChainId() == BASE_SEPOLIA_CHAIN_ID, "run only on Base Sepolia");
         (address deployer, uint256 privateKey) = _deployerAndKey();
         _assertTokenDeploymentNonce(deployer);
@@ -25,6 +25,6 @@ contract DeployBaseSepolia is AfterStateDeployBase {
         token.mint(sourcePayer, sourceMintAmount);
         vm.stopBroadcast();
 
-        return (address(token), address(emitter));
+        return (address(token), address(emitter), keccak256(address(token).code));
     }
 }
