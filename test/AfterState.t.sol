@@ -144,6 +144,38 @@ contract AfterStateTest {
         require(!ok, "same source log was consumed twice with different nonces");
     }
 
+    function testWrongAgreementVersionIsRejected() public {
+        IAfterStateVerifier.SourceFact memory fact = _fact(keccak256("wrong-agreement-version"));
+        fact.agreementVersion = 2;
+        (bool ok,) = address(registry).call(
+            abi.encodeCall(AfterStateRegistry.consumeSourceFact, (fact, _signature(fact)))
+        );
+        require(!ok, "wrong agreement version was accepted");
+    }
+
+    function testZeroFinalityPolicyIsRejected() public {
+        IAfterStateVerifier.SourceFact memory fact = _fact(keccak256("zero-finality-policy"));
+        fact.finalityPolicyId = bytes32(0);
+        (bool ok,) = address(registry).call(
+            abi.encodeCall(AfterStateRegistry.consumeSourceFact, (fact, _signature(fact)))
+        );
+        require(!ok, "zero finality policy was accepted");
+    }
+
+    function testAgreementIdCannotBeReusedAfterDeactivation() public {
+        vm.prank(owner);
+        registry.deactivateAgreement(AGREEMENT);
+        vm.prank(owner);
+        (bool ok,) = address(registry).call(
+            abi.encodeWithSignature(
+                "createAgreement(bytes32,uint256,address,bytes32,address,address,uint128,uint128,uint64)",
+                AGREEMENT, 84532, emitter, EVENT_SCHEMA, asset, recipient,
+                uint128(100), uint128(1000), uint64(block.timestamp + 1 days)
+            )
+        );
+        require(!ok, "deactivated agreement ID was reused");
+    }
+
     function testWrongAmountIsRejected() public {
         IAfterStateVerifier.SourceFact memory fact = _fact(keccak256("nonce-7"));
         fact.amount = 2000;
