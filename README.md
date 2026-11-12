@@ -36,5 +36,8 @@ No arbitrary source-chain consensus proofs, arbitrary off-chain fact proofs, cro
 ## License
 MIT. See LICENSE.
 
+## NEAR integration status
+NEAR Read RPC / foreign-chain transaction verification is the intended source-observation path. Its exact deployed interface and supported event formats still require validation; see [near/ARCHITECTURE.md](near/ARCHITECTURE.md). No NEAR adapter is claimed as implemented yet.
+
 ## Current implementation
 The EVM reference now includes an EIP-712 verifier with versioned signer keys, signer revocation, destination-registry binding and low-s signature checks, plus a Foundry test suite covering valid consumption, replay, registry-domain substitution, revoked signers, expiry and agreement constraints. These tests are authored but have not yet been executed in this environment.
