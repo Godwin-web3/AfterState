@@ -1,6 +1,6 @@
 # NEAR Integration Architecture Decision
 
-Status: the two-stage NEAR contract path is implemented and wasm-target checked. It is not deployed or exercised against live testnet MPC state.
+Status: the two-stage NEAR contract path is implemented and wasm-target checked. A read-only query of live testnet MPC state has succeeded; the adapter is not deployed and no live ForeignTx verification or destination settlement has been executed.
 
 ## Version pin
 
@@ -52,20 +52,22 @@ The NEAR adapter constructor takes:
 - finality policy ID;
 - destination chain ID, verifier contract address, destination registry address and signer_version.
 
-Both MPC calls attach 1 yoctoNEAR. Gas values and domain IDs must come from live deployed contract configuration; do not copy tutorial values. The source emitter, NEAR agreement and EVM registry agreement must share the same source emitter, asset, recipient, amount bounds, version and deadline.
+Both MPC calls attach 1 yoctoNEAR. The observed live contract requires at least 15 Tgas on each MPC request. The ForeignTx callback must cover the follow-on Sign call, the final callback, and a 10 Tgas execution reserve. Re-read gas configuration before deployment; do not copy tutorial values. The source emitter, NEAR agreement and EVM registry agreement must share the same source emitter, asset, recipient, amount bounds, version and deadline.
 
 ## Base Sepolia configuration and live gate
 
-The MPC 3.18.0 example testnet node configuration includes Base Sepolia with expected network fingerprint 84532:
+The live testnet signer contract (version 3.18.0) returned Base in `get_available_foreign_chains()`. Its Base provider whitelist contains three providers with quorum 2. The dated evidence, including the active domain registry and root public keys, is recorded in [MPC_TESTNET_SNAPSHOT.md](MPC_TESTNET_SNAPSHOT.md) and [workflow run 43243643428](https://github.com/Godwin-web3/AfterState/actions/runs/43243643428).
+
+The MPC 3.18.0 example testnet node configuration also includes Base Sepolia with expected network fingerprint 84532:
 https://github.com/near/mpc/blob/e691bdb98d68dcf74653da58d043453a6318765f/deployment/cvm-deployment/user-config.toml
 
-That proves Base Sepolia is in the example node configuration, not that the live signer contract has Base in its available-chain set. Before deployment, query live contract state for active domains/purposes, schemes, root keys, participants, threshold, available chains and provider quorum. Derive the signer address for the deployed adapter account and fixed path; do not copy public keys from tutorials.
+The live query resolves the earlier uncertainty, but this is mutable deployment state. Re-query active domains/purposes, schemes, root keys, participants, threshold, available chains and provider quorum immediately before deployment. Derive the signer address for the intended adapter account and fixed path; do not copy public keys from tutorials.
 
 ## v0.1 limitations
 
 - One immutable agreement per adapter deployment; authorized submitter only.
 - Source and destination ERC-20 address and units must match. No asset mapping/decimal conversion.
-- SourcePayment is an irreversible transfer, not escrow. No automatic source refund.
+- SourcePayment is an irreversible source transfer, not escrow. The reference destination adapter separately releases pre-funded tokens; this is not a source-asset lock/burn or supply-conserving bridge. No automatic source refund.
 - No NEAR pending/replay state. EVM registry provides final one-time fact consumption; public relayers need NEAR-side request controls.
 - No live testnet end-to-end test yet.
 
