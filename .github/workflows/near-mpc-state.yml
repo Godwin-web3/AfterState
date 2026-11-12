@@ -1,8 +1,19 @@
 name: NEAR MPC Testnet State
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/near-mpc-state.yml"
+      - "near/scripts/query-mpc-testnet.sh"
+      - "near/foreign-tx-fixtures/**"
   workflow_dispatch:
     inputs:
+      foreign_tx_domain_id:
+        description: "Live ForeignTx-purpose domain ID from the returned contract state"
+        required: false
+        type: string
+        default: ""
       adapter_account_id:
         description: "Deployed AfterState NEAR adapter account (optional until deployed)"
         required: false
