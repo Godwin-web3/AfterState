@@ -1,0 +1,26 @@
+name: NEAR ForeignTx Fixtures
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "near/foreign-tx-fixtures/**"
+      - ".github/workflows/near.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "near/foreign-tx-fixtures/**"
+      - ".github/workflows/near.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  foreign-tx-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run pinned MPC serialization fixtures
+        run: cargo test --manifest-path near/foreign-tx-fixtures/Cargo.toml
