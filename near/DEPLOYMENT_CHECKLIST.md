@@ -77,6 +77,15 @@ The destination script checks the expected token address, signer, chain ID, amou
 
 Deploy the release WASM to a dedicated NEAR testnet account. Initialize it with the live MPC account, dedicated authorized submitter, distinct live ForeignTx and Sign domain IDs, measured gas values, source emitter and agreement fields, destination chain/verifier/registry addresses, finality-policy identifier, and EVM signer version.
 
+The local deployment helper builds the release WASM, validates and serializes the fixed-array init arguments, then uses near-cli-rs with the local OS keychain:
+
+```sh
+# Fill the NEAR adapter values in your ignored local .env first.
+bash near/scripts/deploy-adapter.sh
+```
+
+The helper uses `ADAPTER_ACCOUNT_ID` as the contract account and `AUTHORIZED_SUBMITTER` as the only account permitted to call `verify_base_log`. The account must already exist on NEAR testnet and have a full-access key available in your local near-cli-rs keychain. The script does not upload credentials to GitHub.
+
 Never commit a seed phrase, private key, or full-access key to the repository or CI.
 
 ## 5. End-to-end acceptance test
