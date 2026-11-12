@@ -24,6 +24,7 @@ The MPC contract requires the ForeignTx domain to be active and the requested ch
 - https://github.com/near/mpc/blob/main/crates/near-mpc-contract-interface/src/types/foreign_chain/chains/evm.rs
 - https://github.com/near/mpc/blob/main/crates/near-mpc-contract-interface/src/types/foreign_chain/sign_payload.rs
 - https://github.com/near/mpc/blob/main/crates/near-mpc-sdk/src/foreign_chain/evm.rs
+- https://github.com/near/mpc/blob/main/deployment/cvm-deployment/user-config.toml (example testnet foreign-chain RPC configuration)
 
 ## Proposed flow
 
