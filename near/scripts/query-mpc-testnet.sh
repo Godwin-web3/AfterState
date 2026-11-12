@@ -39,6 +39,19 @@ view_call get_available_foreign_chains '{}' > "$OUTPUT_DIR/available_foreign_cha
 view_call get_foreign_chains_configs '{}' > "$OUTPUT_DIR/foreign_chains_configs.json"
 view_call allowed_foreign_chain_providers '{}' > "$OUTPUT_DIR/allowed_foreign_chain_providers.json"
 
+# Discover current domains from deployed state unless explicitly overridden.
+# Select a Sign domain whose live key is Secp256k1 for EVM signing.
+if [[ -z "$FOREIGN_TX_DOMAIN_ID" ]]; then
+  FOREIGN_TX_DOMAIN_ID="$(jq -er '[.Running.domains.domains[] | select(.purpose == "ForeignTx") | .id] | first' "$OUTPUT_DIR/state.json")"
+fi
+if [[ -z "$SIGN_DOMAIN_ID" ]]; then
+  SIGN_DOMAIN_ID="$(jq -er '
+    [.Running.domains.domains[] | select(.purpose == "Sign") | .id] as $sign_ids |
+    [.Running.keyset.domains[] | select(.key | has("Secp256k1")) | .domain_id] as $secp_ids |
+    ($sign_ids | map(select(. as $id | $secp_ids | index($id))) | first)
+  ' "$OUTPUT_DIR/state.json")"
+fi
+
 if [[ -n "$FOREIGN_TX_DOMAIN_ID" ]]; then
   foreign_args="$(jq -n --argjson domain_id "$FOREIGN_TX_DOMAIN_ID" '{domain_id:$domain_id}')"
   view_call public_key "$foreign_args" > "$OUTPUT_DIR/foreign_tx_domain_public_key.json"
