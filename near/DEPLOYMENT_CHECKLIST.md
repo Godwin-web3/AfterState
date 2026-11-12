@@ -90,7 +90,7 @@ The local deployment helper builds the release WASM, validates and serializes th
 bash near/scripts/deploy-adapter.sh
 ```
 
-The helper uses `ADAPTER_ACCOUNT_ID` as the contract account and `AUTHORIZED_SUBMITTER` as the only account permitted to call `verify_base_log`. Set `DERIVED_FOR_ADAPTER_ACCOUNT_ID` to the account ID used in the live signer-derivation workflow; the helper aborts if it differs from `ADAPTER_ACCOUNT_ID`. The account must already exist on NEAR testnet and have a full-access key available in your local near-cli-rs keychain. The script does not upload credentials to GitHub.
+The helper uses `ADAPTER_ACCOUNT_ID` as the contract account and `AUTHORIZED_SUBMITTER` as the only account permitted to call `verify_base_log`. Set `DERIVED_FOR_ADAPTER_ACCOUNT_ID` to the account ID used in the live signer-derivation workflow; the helper aborts if it differs from `ADAPTER_ACCOUNT_ID`. For the current single-wallet demo, `.env.example` sets `AUTHORIZED_SUBMITTER` to the same implicit account as `ADAPTER_ACCOUNT_ID`; that account must retain a full-access key so it can deploy the contract and submit the verification call. A production deployment should separate the adapter account and submitter. The account must already exist on NEAR testnet and have a full-access key available in your local near-cli-rs keychain. The script does not upload credentials to GitHub.
 
 Never commit a seed phrase, private key, or full-access key to the repository or CI.
 
