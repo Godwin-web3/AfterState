@@ -33,7 +33,7 @@ https://github.com/Godwin-web3/AfterState/actions/runs/43207215276
 
 The EVM reference includes an EIP-712 verifier with versioned signer keys, signer revocation, destination-registry binding and low-s signature checks; an agreement registry; global one-time settlement claims; and a pre-funded ERC-20 settlement adapter that checks exact sender/recipient balance deltas.
 
-The NEAR ForeignTx fixture crate is pinned to MPC 3.19.0 commit 86e2cc4d124397ec81f436b11f48bf9b6dfd062e and checks the canonical Borsh+SHA-256 payload hash against a deterministic Base Sepolia request/log vector.
+The NEAR ForeignTx fixture crate is pinned to MPC 3.19.0 commit 86e2cc4d124397ec81f436b11f48bf9b6dfd062e and checks the canonical Borsh bytes plus SHA-256 payload hash against a deterministic Base EVM request/log vector. The fixture CI passed on commit f0872580554cde4baf2fc3537a57778c8c085857.
 
 ## Non-goals for v0.1
 No arbitrary source-chain consensus proofs, arbitrary off-chain fact proofs, cross-chain atomicity, or universal EVM state-diff verification.
