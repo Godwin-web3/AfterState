@@ -1,6 +1,8 @@
 # NEAR adapter
 
-Status: two-stage ForeignTx + Chain Signatures adapter implemented and WASM-target checked. Not deployed or tested end-to-end against live MPC testnet.
+Status: two-stage ForeignTx + Chain Signatures adapter implemented and WASM-target checked. A read-only query confirmed live MPC testnet configuration; the adapter is not deployed and no live ForeignTx request or destination settlement has been executed.
+
+Live testnet evidence is recorded in [MPC_TESTNET_SNAPSHOT.md](../MPC_TESTNET_SNAPSHOT.md). The observed contract version is 3.18.0, Base is available with a 2-of-3 RPC provider quorum, ForeignTx domain 3 and Secp256k1 Sign domain 0. Recheck before deployment.
 
 ## What it does
 
