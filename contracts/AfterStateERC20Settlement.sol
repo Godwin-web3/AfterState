@@ -9,10 +9,9 @@ interface IERC20AfterState {
 }
 
 interface IAfterStateFactRegistry {
-    function getAcceptedFact(bytes32 agreementId, bytes32 nonce)
+    function claimAcceptedFact(bytes32 agreementId, bytes32 nonce)
         external
-        view
-        returns (IAfterStateVerifier.SourceFact memory fact, bool exists);
+        returns (IAfterStateVerifier.SourceFact memory fact);
 }
 
 /// @title AfterStateERC20Settlement
@@ -63,9 +62,8 @@ contract AfterStateERC20Settlement {
         bytes32 settlementKey = keccak256(abi.encode(agreementId, nonce));
         if (settled[settlementKey]) revert FactAlreadySettled();
 
-        (IAfterStateVerifier.SourceFact memory fact, bool exists) =
-            registry.getAcceptedFact(agreementId, nonce);
-        if (!exists) revert FactNotAccepted();
+        IAfterStateVerifier.SourceFact memory fact =
+            registry.claimAcceptedFact(agreementId, nonce);
         if (block.timestamp > fact.expiresAt) revert FactExpired();
         if (fact.asset == address(0)) revert InvalidSettlementAsset();
         if (fact.recipient == address(0)) revert InvalidRecipient();
