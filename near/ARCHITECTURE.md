@@ -4,14 +4,14 @@ Status: the two-stage NEAR contract path is implemented and wasm-target checked.
 
 ## Version pin
 
-The integration baseline is NEAR MPC 3.19.0, release commit 86e2cc4d124397ec81f436b11f48bf9b6dfd062e. Do not code against floating main or older tutorial DTOs. Review the release notes before changing this pin:
-https://github.com/near/mpc/releases/tag/3.19.0
+The integration baseline is NEAR MPC 3.18.0, release commit e691bdb98d68dcf74653da58d043453a6318765f. Do not code against floating main or older tutorial DTOs. Review the release notes before changing this pin:
+https://github.com/near/mpc/releases/tag/3.18.0
 
 The pinned interface sources include:
-- https://github.com/near/mpc/blob/86e2cc4d124397ec81f436b11f48bf9b6dfd062e/crates/contract/src/api/foreign_chain/requests.rs
-- https://github.com/near/mpc/blob/86e2cc4d124397ec81f436b11f48bf9b6dfd062e/crates/near-mpc-contract-interface/src/types/foreign_chain.rs
-- https://github.com/near/mpc/blob/86e2cc4d124397ec81f436b11f48bf9b6dfd062e/crates/near-mpc-crypto-types/src/sign.rs
-- https://github.com/near/mpc/blob/86e2cc4d124397ec81f436b11f48bf9b6dfd062e/crates/near-mpc-contract-interface/src/deposits.rs
+- https://github.com/near/mpc/blob/e691bdb98d68dcf74653da58d043453a6318765f/crates/contract/src/api/foreign_chain/requests.rs
+- https://github.com/near/mpc/blob/e691bdb98d68dcf74653da58d043453a6318765f/crates/near-mpc-contract-interface/src/types/foreign_chain.rs
+- https://github.com/near/mpc/blob/e691bdb98d68dcf74653da58d043453a6318765f/crates/near-mpc-crypto-types/src/sign.rs
+- https://github.com/near/mpc/blob/e691bdb98d68dcf74653da58d043453a6318765f/crates/near-mpc-contract-interface/src/deposits.rs
 
 ## Implemented flow
 
@@ -56,8 +56,8 @@ Both MPC calls attach 1 yoctoNEAR. Gas values and domain IDs must come from live
 
 ## Base Sepolia configuration and live gate
 
-The MPC 3.19.0 example testnet node configuration includes Base Sepolia with expected network fingerprint 84532:
-https://github.com/near/mpc/blob/86e2cc4d124397ec81f436b11f48bf9b6dfd062e/deployment/cvm-deployment/user-config.toml
+The MPC 3.18.0 example testnet node configuration includes Base Sepolia with expected network fingerprint 84532:
+https://github.com/near/mpc/blob/e691bdb98d68dcf74653da58d043453a6318765f/deployment/cvm-deployment/user-config.toml
 
 That proves Base Sepolia is in the example node configuration, not that the live signer contract has Base in its available-chain set. Before deployment, query live contract state for active domains/purposes, schemes, root keys, participants, threshold, available chains and provider quorum. Derive the signer address for the deployed adapter account and fixed path; do not copy public keys from tutorials.
 
