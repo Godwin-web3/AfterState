@@ -1,6 +1,6 @@
 # NEAR ForeignTx request contract
 
-Status: implemented request builder and adapter call path pinned to NEAR MPC 3.18.0, release commit e691bdb98d68dcf74653da58d043453a6318765f. Not yet deployed against live testnet state.
+Status: request builder and adapter call path are pinned to the same NEAR MPC 3.18.0 commit as the live testnet signer. A read-only live state query confirmed Base availability and the active domains; no live ForeignTx request has yet been submitted.
 
 ## Source of truth
 
@@ -64,11 +64,12 @@ The final callback converts only canonical secp256k1 signatures into EVM r||s||v
 
 ## Live deployment gates
 
-- Query deployed contract state for ForeignTx and Sign domains, purposes, schemes, root keys, participants, threshold and available chains.
-- Confirm Base Sepolia appears in the live available-chain set; example node config is not enough.
-- Query provider quorum/allowlist and confirm provider independence.
-- Derive the EVM signer address for the deployed adapter account and fixed path afterstate-v1; configure EVM signerAtVersion with that address.
-- Use live gas requirements and attached deposits. The pinned interface requires 1 yoctoNEAR for each call, but gas must be set to the deployed contract's current requirement.
+A read-only query on 2026-11-12 confirmed Base in the live available-chain set, three whitelisted Base RPC providers with quorum 2, ForeignTx domain 3, and Secp256k1 Sign domain 0. See [MPC_TESTNET_SNAPSHOT.md](MPC_TESTNET_SNAPSHOT.md) and [the successful live query](https://github.com/Godwin-web3/AfterState/actions/runs/43243643428). This state can change; re-query immediately before deployment.
+
+- Recheck live contract state for ForeignTx and Sign domains, purposes, schemes, root keys, participants, threshold and available chains.
+- Recheck provider quorum/allowlist; do not infer provider independence solely from provider names.
+- Choose the intended adapter account ID and derive its EVM address for fixed path afterstate-v1 before deploying the destination verifier. The account ID can be supplied before the adapter contract is deployed.
+- Use the live gas requirements: at least 15 Tgas attached to each MPC request, 1 yoctoNEAR per request, and a ForeignTx callback budget that covers the follow-on Sign call, final callback and 10 Tgas execution reserve.
 - Test wrong payload hash, wrong log index, malformed/removed log, wrong emitter/topic/data, non-finalized receipt, provider-quorum failure and callback failures.
 
 ## Trust boundary
