@@ -19,7 +19,7 @@ The request builder, event decoder, EIP-712 digest and signature encoder live in
 ## Deployment arguments
 
 - mpc_contract_id and authorized_submitter.
-- foreign_tx_domain_id and sign_domain_id (distinct live domains).
+- foreign_tx_domain_id and sign_domain_id (distinct live domains). The adapter constructor now rejects identical IDs; this is a hard separation between the ForeignTx observation purpose and Sign authorization purpose.
 - mpc_call_gas_tgas, foreign_callback_gas_tgas, sign_call_gas_tgas and signature_callback_gas_tgas.
 - source_emitter, agreement_id/version, asset, recipient, min/max amount, agreement_deadline and finality_policy_id.
 - destination_chain_id, verifier_contract, destination_registry and signer_version.
