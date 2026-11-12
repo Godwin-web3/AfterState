@@ -4,10 +4,11 @@ Status: implementation review only; no external audit. EVM and NEAR components a
 
 ## Verified implementation
 
-Latest verified runs: [Foundry CI](https://github.com/Godwin-web3/AfterState/actions/runs/43239292839) and [NEAR adapter CI](https://github.com/Godwin-web3/AfterState/actions/runs/43211514663).
+Latest verified runs: [Foundry CI](https://github.com/Godwin-web3/AfterState/actions/runs/43239292839) and [NEAR adapter CI + release WASM artifact](https://github.com/Godwin-web3/AfterState/actions/runs/43238949473).
 
 - Foundry CI passed 20 tests on commit 1a9c137a015ad214c67eb5951b4cc7e4b3da80fd.
-- NEAR Rust CI passed the pinned fixtures, adapter unit tests and WASM checks on commit 15958e60b6f037bfc317a5d30b12e19d2a482229. The expanded workflow additionally validates the live-state query script and builds release WASM; its run on commit 094cba9f2c4525a18b54bf395473adceac0a1d71 remains in progress.
+- NEAR CI passed 16 Rust tests, validated the live-state query script, checked the adapter for wasm32-unknown-unknown, built the release WASM and uploaded the artifact on commit 094cba9f2c4525a18b54bf395473adceac0a1d71.
+- The uploaded artifact archive SHA-256 is c5772f86d40c4cdecc95e66340dc2c1fe4c6d38cb9d60c53c56309ff9fe7e50f.
 - EIP-712 digest fixture matches the Solidity verifier byte-for-byte for a deterministic fact, destination chain, verifier and registry.
 - MPC ForeignTx fixture uses NEAR MPC 3.19.0 pinned commit 86e2cc4d124397ec81f436b11f48bf9b6dfd062e and asserts both exact Borsh bytes and SHA-256 payload hash.
 - SourcePayment decoder checks exact topic0, topic count, ABI data length, canonical address padding, integer bounds and nonzero fields.
