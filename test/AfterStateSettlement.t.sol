@@ -83,6 +83,8 @@ contract AfterStateSettlementTest {
             observedAt: uint64(block.timestamp),
             expiresAt: uint64(block.timestamp + 1 hours),
             keyVersion: 1,
+            agreementVersion: 1,
+            finalityPolicyId: keccak256("sepolia-12-confirmations"),
             nonce: nonce
         });
         bytes32 digest = verifier.digestFor(address(registry), fact);
