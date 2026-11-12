@@ -1,0 +1,38 @@
+name: NEAR MPC Testnet State
+
+on:
+  workflow_dispatch:
+    inputs:
+      adapter_account_id:
+        description: "Deployed AfterState NEAR adapter account (optional until deployed)"
+        required: false
+        type: string
+        default: ""
+      sign_domain_id:
+        description: "Live Sign-purpose domain ID from the returned contract state"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-mpc-testnet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Query live NEAR MPC testnet views
+        env:
+          ADAPTER_ACCOUNT_ID: ${{ inputs.adapter_account_id }}
+          SIGN_DOMAIN_ID: ${{ inputs.sign_domain_id }}
+        run: bash near/scripts/query-mpc-testnet.sh
+      - name: Upload public contract state report
+        uses: actions/upload-artifact@v4
+        with:
+          name: near-mpc-testnet-state
+          path: near-mpc-state/report.json
+          if-no-files-found: error
