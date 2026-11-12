@@ -16,9 +16,11 @@ AfterState is an execution-assurance protocol for cross-chain workflows. It bind
 
 ## Frontend
 
-The Vite/React interface is in the frontend directory. It supports EIP-1193 wallet connection, destination agreement registration, Base Sepolia token approval and source payment, accepted-fact reads, and destination settlement. Contract addresses are configured in Network setup and stored locally in the browser.
+The Vite/React interface is in the frontend directory. It supports EIP-1193 EVM wallet connection, NEAR testnet wallet connection through NEAR Connect, destination agreement registration/import, Base Sepolia token approval and source payment, NEAR adapter submission, MPC outcome polling, destination fact consumption, and destination settlement. Contract addresses and activity are stored locally in the browser; signing keys remain in user wallets.
 
-A successful source payment is not shown as verified. The NEAR adapter must submit its ForeignTx + MPC-signature result to the destination registry, and the registry must expose the matching accepted fact before settlement is available. v0.1 assumes the same ERC-20 address and units on both EVM testnets.
+The frontend integration is implemented but has not yet completed a live MPC-to-EVM acceptance test. The adapter must be deployed and initialized, its configured submitter must connect through a NEAR wallet, and both EVM networks must have the required contracts deployed. The adapter is initialized for one immutable agreement, so the frontend requires the exact agreement ID and terms configured at deployment. v0.1 assumes the same ERC-20 address and units on both EVM testnets.
+
+See [the frontend execution flow](./docs/FRONTEND_FLOW.md) for the exact transaction sequence and remaining live-test requirements.
 
 ## Security boundaries
 
