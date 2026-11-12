@@ -96,6 +96,11 @@ impl AfterStateNearAdapter {
         destination_registry: [u8; 20],
         signer_version: u32,
     ) -> Self {
+        // ForeignTx and Sign are separate MPC trust domains. Reusing one domain
+        // would erase the protocol-level separation between observation and
+        // destination authorization.
+        require!(foreign_tx_domain_id != sign_domain_id, "ForeignTx and Sign domains must be distinct");
+        require!(mpc_contract_id != env::current_account_id(), "MPC contract cannot be the adapter itself");
         require!(mpc_call_gas_tgas > 0, "MPC call gas must be non-zero");
         require!(foreign_callback_gas_tgas > 0, "ForeignTx callback gas must be non-zero");
         require!(sign_call_gas_tgas > 0, "sign call gas must be non-zero");
