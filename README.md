@@ -37,7 +37,7 @@ No arbitrary source-chain consensus proofs, arbitrary off-chain fact proofs, cro
 MIT. See LICENSE.
 
 ## NEAR integration status
-NEAR Read RPC / foreign-chain transaction verification is the intended source-observation path. Its exact deployed interface and supported event formats still require validation; see [near/ARCHITECTURE.md](near/ARCHITECTURE.md). No NEAR adapter is claimed as implemented yet.
+The provisional testnet source target is Base Sepolia (EVM chain ID 84532), because the current NEAR MPC repository's example testnet configuration includes Base Sepolia RPC providers. This is not proof that Base is currently enabled in the live testnet ForeignTx domain; live availability still needs to be checked. NEAR Read RPC / foreign-chain transaction verification is the intended source-observation path. Its exact deployed interface and supported event formats still require validation; see [near/ARCHITECTURE.md](near/ARCHITECTURE.md). No NEAR adapter is claimed as implemented yet.
 
 ## Security review
 See [docs/SECURITY_REVIEW.md](docs/SECURITY_REVIEW.md) for implemented controls, trust boundaries, fixes and outstanding tests.
