@@ -28,7 +28,7 @@ Against the current official NEAR testnet MPC account, make these read-only view
 - public_key({domain_id: SIGN_DOMAIN}) — confirm the Sign domain exposes secp256k1.
 - derived_public_key({path: "afterstate-v1", predecessor: ADAPTER_ACCOUNT, domain_id: SIGN_DOMAIN}) — derive the adapter's exact application key.
 
-The ForeignTx domain must have ForeignTx purpose; the signing domain must have Sign purpose and expose Secp256k1. Their IDs must differ. The adapter enforces distinct IDs, and MPC independently checks each request's purpose. The live testnet currently requires at least 15 Tgas on both ForeignTx and Sign requests; the adapter constructor rejects lower values.
+The ForeignTx domain must have ForeignTx purpose; the signing domain must have Sign purpose and expose Secp256k1. Their IDs must differ. The adapter enforces distinct IDs, and MPC independently checks each request's purpose. The live testnet currently requires at least 15 Tgas on both ForeignTx and Sign requests; the adapter constructor rejects lower values. The ForeignTx callback must also have enough gas to schedule the follow-on Sign call and its callback: the constructor requires `foreign_callback_gas_tgas > sign_call_gas_tgas + signature_callback_gas_tgas`. The supplied example uses 60 Tgas for that callback, 15 Tgas for Sign, and 30 Tgas for the final callback.
 
 If Base is absent from the live available-chain view, stop. Do not silently switch chains or weaken finality.
 
@@ -94,7 +94,7 @@ Use a small amount and fresh nonce:
 
 1. Approve the source emitter and call pay(agreementId, agreementVersion, asset, recipient, amount, nonce).
 2. Obtain the exact Base receipt log, preserving transaction hash, block hash/number, transaction index, log index, emitter, topics, and data.
-3. Submit the candidate log to verify_base_log from the authorized NEAR submitter.
+3. Submit the candidate log to verify_base_log from the authorized NEAR submitter with enough prepaid gas for the complete promise chain (start with 100 Tgas, then measure actual use).
 4. Confirm MPC ForeignTx verification returns only after the expected payload hash matches.
 5. Confirm the follow-on sign request uses the separate Sign domain and fixed afterstate-v1 path.
 6. Submit the returned EVM signature and exact fact to consumeSourceFact on the Ethereum Sepolia destination registry.
