@@ -15,10 +15,14 @@ contract DeployBaseSepolia is AfterStateDeployBase {
         (address deployer, uint256 privateKey) = _deployerAndKey();
         _assertTokenDeploymentNonce(deployer);
 
+        address sourcePayer = vm.envAddress("SOURCE_PAYER");
+        uint256 sourceMintAmount = vm.envUint("SOURCE_MINT_AMOUNT");
+        require(sourcePayer != address(0) && sourceMintAmount > 0, "invalid source mint");
+
         vm.startBroadcast(privateKey);
         AfterStateDemoToken token = new AfterStateDemoToken(deployer);
         AfterStateSourceEmitter emitter = new AfterStateSourceEmitter();
-        token.mint(vm.envAddress("SOURCE_PAYER"), vm.envUint("SOURCE_MINT_AMOUNT"));
+        token.mint(sourcePayer, sourceMintAmount);
         vm.stopBroadcast();
 
         return (address(token), address(emitter));
