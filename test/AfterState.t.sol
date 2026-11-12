@@ -134,6 +134,16 @@ contract AfterStateTest {
         require(!ok, "expired fact was accepted");
     }
 
+    function testSameSourceLogCannotBeConsumedWithDifferentNonce() public {
+        IAfterStateVerifier.SourceFact memory first = _fact(keccak256("source-log-nonce-a"));
+        IAfterStateVerifier.SourceFact memory second = _fact(keccak256("source-log-nonce-b"));
+        registry.consumeSourceFact(first, _signature(first));
+        (bool ok,) = address(registry).call(
+            abi.encodeCall(AfterStateRegistry.consumeSourceFact, (second, _signature(second)))
+        );
+        require(!ok, "same source log was consumed twice with different nonces");
+    }
+
     function testWrongAmountIsRejected() public {
         IAfterStateVerifier.SourceFact memory fact = _fact(keccak256("nonce-7"));
         fact.amount = 2000;
