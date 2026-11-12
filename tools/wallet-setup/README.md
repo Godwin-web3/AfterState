@@ -26,7 +26,7 @@ Requires Node.js 20 or newer. On Android, Termux can provide a local terminal an
 ```sh
 pkg update
 pkg install nodejs-lts git
- git clone https://github.com/Godwin-web3/AfterState.git
+git clone https://github.com/Godwin-web3/AfterState.git
 cd AfterState/tools/wallet-setup
 npm install
 npm run generate
