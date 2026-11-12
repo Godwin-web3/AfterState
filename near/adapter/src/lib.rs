@@ -8,6 +8,7 @@ use near_sdk::{
     env, ext_contract, near, require, AccountId, Gas, NearToken, PanicOnDefault, Promise, PromiseError,
 };
 
+#[allow(dead_code)]
 #[ext_contract(ext_mpc)]
 trait ExtMpc {
     fn verify_foreign_transaction(
@@ -16,6 +17,7 @@ trait ExtMpc {
     ) -> VerifyForeignTransactionResponse;
 }
 
+#[allow(dead_code)]
 #[ext_contract(ext_self)]
 trait ExtSelf {
     fn on_foreign_tx_verified(
