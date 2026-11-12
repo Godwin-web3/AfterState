@@ -50,6 +50,14 @@ jobs:
           python3 -m py_compile near/scripts/build_adapter_init_args.py
           python3 near/scripts/build_adapter_init_args.py > /tmp/adapter-init-args.json
           jq -e '.foreign_tx_domain_id == 3 and .sign_domain_id == 0 and .destination_chain_id == 11155111 and (.source_emitter | length == 20) and .min_amount == 1' /tmp/adapter-init-args.json
+          if FOREIGN_CALLBACK_GAS_TGAS=54 python3 near/scripts/build_adapter_init_args.py >/dev/null 2>&1; then
+            echo "underfunded ForeignTx callback budget was accepted"
+            exit 1
+          fi
+          if MPC_CALL_GAS_TGAS=14 python3 near/scripts/build_adapter_init_args.py >/dev/null 2>&1; then
+            echo "underfunded ForeignTx MPC request gas was accepted"
+            exit 1
+          fi
       - name: Run pinned MPC serialization fixtures
         run: |
           cargo test --manifest-path near/foreign-tx-fixtures/Cargo.toml
