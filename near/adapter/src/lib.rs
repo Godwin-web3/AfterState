@@ -5,7 +5,7 @@ use near_mpc_contract_interface::types::{
     DomainId, Hash256, VerifyForeignTransactionResponse,
 };
 use near_sdk::{
-    env, ext_contract, near, require, AccountId, Gas, NearToken, Promise, PromiseError,
+    env, ext_contract, near, private, require, AccountId, Gas, NearToken, PanicOnDefault, Promise, PromiseError,
 };
 
 #[ext_contract(ext_mpc)]
