@@ -19,6 +19,8 @@ interface IAfterStateVerifier {
         uint64 observedAt;
         uint64 expiresAt;
         uint32 keyVersion;
+        uint32 agreementVersion;
+        bytes32 finalityPolicyId;
         bytes32 nonce;
     }
 
