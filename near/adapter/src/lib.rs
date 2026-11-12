@@ -166,6 +166,12 @@ impl AfterStateNearAdapter {
             payment.amount >= self.min_amount && payment.amount <= self.max_amount,
             "amount outside agreement bounds"
         );
+        let now_seconds = env::block_timestamp() / 1_000_000_000;
+        require!(now_seconds <= self.agreement_deadline, "agreement deadline has passed");
+        require!(
+            payment.source_timestamp <= now_seconds,
+            "source event timestamp is in the future"
+        );
         require!(
             payment.source_timestamp <= self.agreement_deadline,
             "source payment is after agreement deadline"
