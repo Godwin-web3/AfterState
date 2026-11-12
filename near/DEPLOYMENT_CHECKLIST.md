@@ -32,6 +32,10 @@ The ForeignTx domain must have ForeignTx purpose; the signing domain must have S
 
 If Base is absent from the live available-chain view, stop. Do not silently switch chains or weaken finality.
 
+Before deploying the EVM verifier, choose the NEAR account ID that will host the adapter. Create/fund that testnet account if needed and retain its full-access key locally. The derived EVM key depends on the account ID, fixed path `afterstate-v1`, and Sign domain; it can be derived before the adapter contract is deployed.
+
+Run [NEAR MPC Testnet State](https://github.com/Godwin-web3/AfterState/actions/workflows/near-mpc-state.yml) manually with `adapter_account_id` set to that intended account. Leave domain inputs blank so the workflow discovers the live domains. Copy `derived_evm_address` from the report into `AFTERSTATE_MPC_SIGNER_ADDRESS` for the destination deployment.
+
 ## 3. Deploy the EVM source and destination sides
 
 The demo must use two different EVM chains or it is not a cross-chain execution demonstration:
