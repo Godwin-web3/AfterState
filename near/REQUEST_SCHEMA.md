@@ -64,7 +64,7 @@ The final callback converts only canonical secp256k1 signatures into EVM r||s||v
 
 ## Live deployment gates
 
-A read-only query on 2026-11-12 confirmed Base in the live available-chain set, three whitelisted Base RPC providers with quorum 2, ForeignTx domain 3, and Secp256k1 Sign domain 0. See [MPC_TESTNET_SNAPSHOT.md](MPC_TESTNET_SNAPSHOT.md) and [the successful live query](https://github.com/Godwin-web3/AfterState/actions/runs/43243643428). This state can change; re-query immediately before deployment.
+A read-only query on 2026-11-12 confirmed Base in the live available-chain set, three whitelisted Base RPC providers with quorum 2, ForeignTx domain 3, and Secp256k1 Sign domain 0. See [MPC_TESTNET_SNAPSHOT.md](MPC_TESTNET_SNAPSHOT.md) and [the successful live query](https://github.com/Godwin-web3/AfterState/actions/runs/43244784087). This state can change; re-query immediately before deployment.
 
 - Recheck live contract state for ForeignTx and Sign domains, purposes, schemes, root keys, participants, threshold and available chains.
 - Recheck provider quorum/allowlist; do not infer provider independence solely from provider names.
