@@ -73,7 +73,7 @@ fi
 
 if [[ -f "$OUTPUT_DIR/derived_evm_public_key.json" ]]; then
   jq --slurpfile key "$OUTPUT_DIR/derived_evm_public_key.json" --rawfile address "$OUTPUT_DIR/derived_evm_address.txt" \
-    '. + {derived_evm_public_key:$key[0],derived_evm_address:($address | rtrimstr("\\n"))}' \
+    '. + {derived_evm_public_key:$key[0],derived_evm_address:($address | rtrimstr("\n"))}' \
     "$OUTPUT_DIR/report.json" > "$OUTPUT_DIR/report.tmp"
   mv "$OUTPUT_DIR/report.tmp" "$OUTPUT_DIR/report.json"
 fi
