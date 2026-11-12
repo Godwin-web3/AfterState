@@ -2,6 +2,17 @@
 
 Status: procedure only; no live deployment is claimed. Testnet acceptance requires a funded NEAR account, live MPC state, and EVM testnet transactions.
 
+## 0. Fund the testnet-only accounts
+
+Use only the public addresses in `.env.example`; never paste a private key or recovery phrase into a faucet.
+
+- EVM deployer / source payer / destination recipient: `0xbce762f9d2e5171ce13ac862fcdda4e13f6c0972`. Claim native ETH separately on **Base Sepolia** and **Ethereum Sepolia** from the [Alchemy testnet faucets](https://www.alchemy.com/faucets). Alchemy currently lists 0.1 test ETH per address per network every 24 hours.
+- NEAR adapter / authorized submitter: `b6739911d06797c8d55539944a5226d132c2001e34d7bf38993e735954b162d3`. Fund this exact implicit account on NEAR testnet. The [Triangle NEAR testnet faucet](https://faucet.triangleplatform.com/near/testnet) accepts a public account ID and currently advertises a 0.275 NEAR claim. This is a third-party community faucet; enter only the public account ID, never a key.
+- Confirm the NEAR account has enough balance for the adapter WASM storage deposit and the 100 Tgas verification transaction. If the faucet claim is insufficient, use another testnet funding source before deploying.
+
+Incoming faucet transfers do not increment the EVM deployer's transaction nonce, so they do not disturb the intended matching nonce of zero on both EVM testnets.
+
+
 ## 1. Pin and build
 
 - Build from a tagged commit and record the Git SHA, Rust toolchain, near-sdk version, and pinned MPC interface commit.
