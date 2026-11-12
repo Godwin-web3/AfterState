@@ -219,3 +219,92 @@ fn decode_u32_word(word: &[u8]) -> Result<u32, SourcePaymentDecodeError> {
     value.copy_from_slice(&word[28..]);
     Ok(u32::from_be_bytes(value))
 }
+
+#[derive(Clone, Debug)]
+pub struct Eip712SourceFact {
+    pub source_chain_id: u64,
+    pub emitter: [u8; 20],
+    pub event_schema: [u8; 32],
+    pub agreement_id: [u8; 32],
+    pub source_block_hash: [u8; 32],
+    pub source_tx_hash: [u8; 32],
+    pub source_block_number: u64,
+    pub log_index: u64,
+    pub asset: [u8; 20],
+    pub amount: u128,
+    pub recipient: [u8; 20],
+    pub observed_at: u64,
+    pub expires_at: u64,
+    pub key_version: u32,
+    pub agreement_version: u32,
+    pub finality_policy_id: [u8; 32],
+    pub nonce: [u8; 32],
+}
+
+fn keccak256(bytes: &[u8]) -> [u8; 32] {
+    use sha3::{Digest, Keccak256};
+    Keccak256::digest(bytes).into()
+}
+
+fn uint_word(value: u128) -> [u8; 32] {
+    let mut word = [0u8; 32];
+    word[16..].copy_from_slice(&value.to_be_bytes());
+    word
+}
+
+fn address_word(value: [u8; 20]) -> [u8; 32] {
+    let mut word = [0u8; 32];
+    word[12..].copy_from_slice(&value);
+    word
+}
+
+/// Reproduces AfterStateEIP712Verifier._digest exactly. Amount is constrained
+/// to u128 here because the current registry agreement bounds are uint128.
+pub fn afterstate_eip712_digest(
+    fact: &Eip712SourceFact,
+    destination_chain_id: u64,
+    verifier_contract: [u8; 20],
+    destination_registry: [u8; 20],
+) -> [u8; 32] {
+    let source_fact_typehash = keccak256(b"SourceFact(uint256 sourceChainId,address emitter,bytes32 eventSchema,bytes32 agreementId,bytes32 sourceBlockHash,bytes32 sourceTxHash,uint256 sourceBlockNumber,uint256 logIndex,address asset,uint256 amount,address recipient,uint64 observedAt,uint64 expiresAt,uint32 keyVersion,uint32 agreementVersion,bytes32 finalityPolicyId,bytes32 nonce,address destinationRegistry)");
+    let domain_typehash =
+        keccak256(b"EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+    let name_hash = keccak256(b"AfterState");
+    let version_hash = keccak256(b"1");
+
+    let mut encoded_fact = Vec::with_capacity(19 * 32);
+    encoded_fact.extend_from_slice(&source_fact_typehash);
+    encoded_fact.extend_from_slice(&uint_word(fact.source_chain_id as u128));
+    encoded_fact.extend_from_slice(&address_word(fact.emitter));
+    encoded_fact.extend_from_slice(&fact.event_schema);
+    encoded_fact.extend_from_slice(&fact.agreement_id);
+    encoded_fact.extend_from_slice(&fact.source_block_hash);
+    encoded_fact.extend_from_slice(&fact.source_tx_hash);
+    encoded_fact.extend_from_slice(&uint_word(fact.source_block_number as u128));
+    encoded_fact.extend_from_slice(&uint_word(fact.log_index as u128));
+    encoded_fact.extend_from_slice(&address_word(fact.asset));
+    encoded_fact.extend_from_slice(&uint_word(fact.amount));
+    encoded_fact.extend_from_slice(&address_word(fact.recipient));
+    encoded_fact.extend_from_slice(&uint_word(fact.observed_at as u128));
+    encoded_fact.extend_from_slice(&uint_word(fact.expires_at as u128));
+    encoded_fact.extend_from_slice(&uint_word(fact.key_version as u128));
+    encoded_fact.extend_from_slice(&uint_word(fact.agreement_version as u128));
+    encoded_fact.extend_from_slice(&fact.finality_policy_id);
+    encoded_fact.extend_from_slice(&fact.nonce);
+    encoded_fact.extend_from_slice(&address_word(destination_registry));
+    let struct_hash = keccak256(&encoded_fact);
+
+    let mut encoded_domain = Vec::with_capacity(5 * 32);
+    encoded_domain.extend_from_slice(&domain_typehash);
+    encoded_domain.extend_from_slice(&name_hash);
+    encoded_domain.extend_from_slice(&version_hash);
+    encoded_domain.extend_from_slice(&uint_word(destination_chain_id as u128));
+    encoded_domain.extend_from_slice(&address_word(verifier_contract));
+    let domain_separator = keccak256(&encoded_domain);
+
+    let mut digest_input = Vec::with_capacity(66);
+    digest_input.extend_from_slice(&[0x19, 0x01]);
+    digest_input.extend_from_slice(&domain_separator);
+    digest_input.extend_from_slice(&struct_hash);
+    keccak256(&digest_input)
+}
