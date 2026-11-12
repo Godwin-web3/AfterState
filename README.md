@@ -2,47 +2,43 @@
 
 **Verified conditions. Enforced outcomes.**
 
-AfterState is an execution-assurance protocol for cross-chain workflows. It separates two assertions: (1) a precisely scoped event occurred on a specified source chain, and (2) the destination action completed and its declared postconditions hold. A source event does not prove destination execution; an EVM-successful transaction does not prove the intended application outcome.
+AfterState is an execution-assurance protocol for cross-chain workflows. It binds a specific source-chain event to a destination EIP-712 authorization, then leaves destination execution to an agreement-bound registry and settlement adapter.
 
-> Status: experimental prototype. The EVM reference contracts compile and pass the current Foundry suite. A thin NEAR contract now submits candidate Base EVM logs to MPC 3.19.0 and checks the returned payload hash. Source-agreement decoding and the Chain Signatures EIP-712 signing stage remain under implementation. The system is unaudited and not production-ready.
+> Status: experimental prototype. EVM tests and NEAR adapter compile checks pass. The NEAR adapter is not deployed or tested end-to-end against live MPC testnet state. The system is unaudited and not production-ready.
 
-## Design goals
-- Typed, domain-separated source attestations.
-- Explicit chain, emitter, event, agreement, amount, recipient and asset constraints.
-- Replay protection, expiry and registry-level one-time settlement claims.
-- Destination ERC-20 settlement guarded by measurable balance-delta postconditions.
-- Explicit trust assumptions and recoverable failure states.
-- No false claims that RPC-backed observations are trustless consensus proofs.
+## Current vertical slice
 
-## Trust model
-The current EVM prototype authenticates an authorized EIP-712 attester. That proves who signed a statement, not that the source observation is true. The intended NEAR Read RPC integration will add MPC-backed foreign-transaction observation, but the EVM destination will still trust the configured NEAR-derived signer and the NEAR MPC/contract trust boundary. Read RPC is not an EVM-verifiable light-client proof.
+1. AfterStateSourceEmitter transfers an exact ERC-20 amount to a recipient on Base Sepolia and emits a typed SourcePayment log.
+2. The NEAR adapter decodes that event and validates it against one immutable configured agreement.
+3. It builds the MPC 3.19.0 ForeignTx request with Finalized finality, BlockHash + exact Log extractors, and mandatory expected_payload_hash.
+4. After MPC verifies the request, the NEAR adapter computes the exact AfterState EIP-712 digest and calls the separate Sign-purpose domain using the fixed path afterstate-v1.
+5. The NEAR adapter converts the MPC secp256k1 response into canonical EVM r||s||v bytes. The EVM verifier authenticates the configured signer version; the registry enforces agreement constraints and one-time source-fact consumption.
 
-## State model
-Created → SourceFactAttested → ReadyToSettle → Settled. Failure/recovery states include Rejected, Expired and RecoveryAvailable. Cross-chain execution is not atomic. An irreversible source transfer cannot be rolled back by a destination contract. Refund guarantees require source escrow or a separately specified compensation mechanism.
+The cross-language EIP-712 digest is tested against the Solidity verifier. The ForeignTx request and Borsh payload are pinned to NEAR MPC 3.19.0 commit 86e2cc4d124397ec81f436b11f48bf9b6dfd062e.
+
+## CI status
+
+- Foundry: 19 tests passed on commit b11e7348764417545829ed0da4d3296d944e5f13.
+  https://github.com/Godwin-web3/AfterState/actions/runs/43210618561
+- NEAR Rust: 11 tests passed; adapter checked for wasm32-unknown-unknown on commit b11e7348764417545829ed0da4d3296d944e5f13.
+  https://github.com/Godwin-web3/AfterState/actions/runs/43210618599
+
+## Important constraints
+
+- Base Sepolia (84532) appears in the MPC 3.19.0 example testnet node configuration; live signer contract availability and provider quorum still require a live state query.
+- The ForeignTx domain ID and Sign domain ID are separate and must be read from the deployed contract. Neither is hardcoded.
+- The EVM verifier's signer version is an AfterState version, not the MPC domain ID. The derived EVM address for the NEAR adapter account and fixed path must be derived and configured explicitly.
+- v0.1 assumes the source and destination ERC-20 use the same address and amount units. Cross-chain asset mapping and decimal conversion are not implemented.
+- SourcePayment is an irreversible source-chain payment, not escrow. Destination settlement is not atomic with it; there is no automatic refund if destination execution fails.
+- The current NEAR adapter uses one immutable agreement per deployment and an authorized submitter. It does not yet provide a multi-agreement registry or public relayer marketplace.
 
 ## Layout
-- contracts/ — EVM reference contracts
+
+- contracts/ — EVM verifier, registry, settlement adapter and source payment emitter
 - test/ — Foundry tests
-- spec/ — protocol and threat-model specifications
-- near/ — NEAR adapter research, fixtures and integration specifications
-- docs/ — implementation notes and decisions
+- spec/ — protocol specification
+- near/foreign-tx-fixtures/ — pinned MPC request builder, event decoder, EIP-712 digest and signature encoding fixtures
+- near/adapter/ — NEAR ForeignTx + Chain Signatures adapter
+- docs/ — security review and implementation decisions
 
-## Development
-Solidity 0.8.24, Foundry. The last verified Foundry run passed 15 tests across two suites on commit 2a567b12ab4eb5b1c3fa37a65a25431b3729944a. See:
-https://github.com/Godwin-web3/AfterState/actions/runs/43207215276
-
-The EVM reference includes an EIP-712 verifier with versioned signer keys, signer revocation, destination-registry binding and low-s signature checks; an agreement registry; global one-time settlement claims; and a pre-funded ERC-20 settlement adapter that checks exact sender/recipient balance deltas.
-
-The NEAR ForeignTx fixture crate is pinned to MPC 3.19.0 commit 86e2cc4d124397ec81f436b11f48bf9b6dfd062e and checks the canonical Borsh bytes plus SHA-256 payload hash against a deterministic Base EVM request/log vector. The fixture CI passed on commit f0872580554cde4baf2fc3537a57778c8c085857.
-
-## Non-goals for v0.1
-No arbitrary source-chain consensus proofs, arbitrary off-chain fact proofs, cross-chain atomicity, or universal EVM state-diff verification.
-
-## License
-MIT. See LICENSE.
-
-## NEAR integration status
-Base Sepolia (chain ID 84532) is present in the MPC 3.19.0 example testnet node configuration. This does not prove the live testnet signer contract currently advertises Base as available. The deployed ForeignTx domain, Sign domain, chain availability, provider quorum and root key must be checked against live testnet state before an end-to-end claim. See near/ARCHITECTURE.md, near/REQUEST_SCHEMA.md and near/adapter/README.md. The ForeignTx verification stage is implemented and WASM-target checked; it is not yet a complete AfterState attestation flow. It does not validate the application event schema or issue the destination EIP-712 signature.
-
-## Security review
-See docs/SECURITY_REVIEW.md for implemented controls, trust boundaries, fixes and outstanding tests.
+See near/ARCHITECTURE.md, near/REQUEST_SCHEMA.md and near/adapter/README.md for deployment gates and trust assumptions.
