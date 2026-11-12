@@ -65,17 +65,17 @@ set -a
 source .env
 set +a
 
-# First deploy the source token and emitter. Save the returned token and emitter addresses.
+# First deploy the source token and emitter. Save the returned token address, emitter address, and token code hash.
 forge script script/DeployBaseSepolia.s.sol:DeployBaseSepolia \
   --rpc-url "$BASE_SEPOLIA_RPC_URL" --broadcast
 
-# Fill EXPECTED_ASSET_ADDRESS and BASE_SEPOLIA_SOURCE_EMITTER with the first deployment's addresses.
+# Fill EXPECTED_ASSET_ADDRESS, EXPECTED_ASSET_CODE_HASH, and BASE_SEPOLIA_SOURCE_EMITTER with the first deployment's address/hash outputs.
 # Fill AFTERSTATE_MPC_SIGNER_ADDRESS with the derived address from the live NEAR query.
 forge script script/DeployEthereumSepolia.s.sol:DeployEthereumSepolia \
   --rpc-url "$ETHEREUM_SEPOLIA_RPC_URL" --broadcast
 ```
 
-The destination script checks the expected token address, signer, chain ID, amount bounds, deadline width, and escrow prefunding before broadcasting. Keep `.env`, broadcast output, private keys, and seed phrases out of Git.
+The destination script checks the expected token address and bytecode hash, signer, chain ID, amount bounds, deadline width, and escrow prefunding before broadcasting. Keep `.env`, broadcast output, private keys, and seed phrases out of Git.
 
 ## 4. Deploy the NEAR adapter
 
