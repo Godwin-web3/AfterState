@@ -7,14 +7,14 @@ Status: two-stage ForeignTx + Chain Signatures adapter implemented and WASM-targ
 1. Restricts requests to the configured authorized submitter.
 2. Decodes the exact SourcePayment event emitted by AfterStateSourceEmitter.
 3. Validates emitter, agreement ID/version, asset, recipient, amount bounds, deadline and source log identity against one immutable agreement configured at initialization.
-4. Builds a Base ForeignTx request using MPC 3.19.0 types, Finalized finality, BlockHash + exact Log extractors, and mandatory expected_payload_hash.
+4. Builds a Base ForeignTx request using MPC 3.18.0 types, Finalized finality, BlockHash + exact Log extractors, and mandatory expected_payload_hash.
 5. Calls verify_foreign_transaction with 1 yoctoNEAR and configured gas.
 6. In the callback, checks the MPC response payload hash against the expected hash.
 7. Constructs the exact AfterState EIP-712 digest from the validated event and candidate log.
 8. Calls the separate Sign-purpose domain with Payload::Ecdsa and fixed derivation path afterstate-v1.
 9. Converts the MPC secp256k1 signature to canonical 65-byte EVM r||s||v bytes. Invalid recovery IDs, point encodings, r values and high-s signatures are rejected.
 
-The request builder, event decoder, EIP-712 digest and signature encoder live in ../foreign-tx-fixtures and are pinned to MPC commit 86e2cc4d124397ec81f436b11f48bf9b6dfd062e.
+The request builder, event decoder, EIP-712 digest and signature encoder live in ../foreign-tx-fixtures and are pinned to MPC commit e691bdb98d68dcf74653da58d043453a6318765f.
 
 ## Deployment arguments
 
