@@ -1,6 +1,6 @@
 # Live NEAR MPC testnet snapshot
 
-Observed: 2026-11-12 14:48 UTC  
+Observed: 2026-11-12 15:04 UTC  
 Network: NEAR testnet  
 MPC account: `v1.signer-prod.testnet`  
 Deployed MPC version: `3.18.0`  
@@ -8,9 +8,9 @@ Pinned interface source: [NEAR MPC 3.18.0](https://github.com/near/mpc/tree/e691
 Keyset epoch: `27`  
 Threshold: `11 of 17`
 
-Evidence: [read-only state workflow run 43240885721](https://github.com/Godwin-web3/AfterState/actions/runs/43240885721)  
+Evidence: [read-only state workflow run 43243643428](https://github.com/Godwin-web3/AfterState/actions/runs/43243643428)  
 Artifact: `near-mpc-testnet-state`  
-Artifact SHA-256: `b9cfec4831bff92c9754d246dbc562dabd8556cf0414f233cb448f37a3143da3`
+Artifact SHA-256: `dfacd800137593ccb6fee1394edafdd3581a4e25b2842e072fd4c0d84b754eba`
 
 ## Foreign-chain support
 
