@@ -18,10 +18,10 @@ The cross-language EIP-712 digest is tested against the Solidity verifier. The F
 
 ## CI status
 
-- Foundry: 19 tests passed on commit b11e7348764417545829ed0da4d3296d944e5f13.
-  https://github.com/Godwin-web3/AfterState/actions/runs/43210618561
-- NEAR Rust: 11 tests passed; adapter checked for wasm32-unknown-unknown on commit b11e7348764417545829ed0da4d3296d944e5f13.
-  https://github.com/Godwin-web3/AfterState/actions/runs/43210618599
+- Foundry: 19 tests passed on commit 22e43de43fdfdb4fdc8fcfe83abee557f810299b.
+  https://github.com/Godwin-web3/AfterState/actions/runs/43210883412
+- NEAR Rust: 11 tests passed; adapter checked for wasm32-unknown-unknown on commit 22e43de43fdfdb4fdc8fcfe83abee557f810299b.
+  https://github.com/Godwin-web3/AfterState/actions/runs/43210883608
 
 ## Important constraints
 
