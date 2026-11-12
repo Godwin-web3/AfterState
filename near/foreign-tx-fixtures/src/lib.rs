@@ -4,7 +4,7 @@
 //! commit. Updating that pin is a protocol change: review DTO/Borsh changes
 //! and regenerate the regression fixtures deliberately.
 
-use near_mpc_contract_interface::types::{
+use serde::{Deserialize, Serialize};\nuse near_mpc_contract_interface::types::{
     EvmExtractedValue, EvmExtractor, EvmFinality, EvmLog, EvmRpcRequest, EvmTxId,
     ExtractedValue, ForeignChainRpcRequest, ForeignTxPayloadVersion, ForeignTxSignPayload,
     Hash160, Hash256, VerifyForeignTransactionRequestArgs, DomainId,
