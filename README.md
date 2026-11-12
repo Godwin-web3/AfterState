@@ -41,4 +41,4 @@ The cross-language EIP-712 digest is tested against the Solidity verifier. The F
 - near/adapter/ — NEAR ForeignTx + Chain Signatures adapter
 - docs/ — security review and implementation decisions
 
-See near/ARCHITECTURE.md, near/REQUEST_SCHEMA.md and near/adapter/README.md for deployment gates and trust assumptions.
+See near/ARCHITECTURE.md, near/REQUEST_SCHEMA.md, near/adapter/README.md and near/DEPLOYMENT_CHECKLIST.md for deployment gates, live-state checks, acceptance tests and trust assumptions.
