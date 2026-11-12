@@ -1,0 +1,17 @@
+{
+  "name": "afterstate-wallet-setup",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Local-only generator for dedicated AfterState testnet wallet keys",
+  "type": "module",
+  "scripts": {
+    "generate": "node generate.mjs"
+  },
+  "dependencies": {
+    "ethers": "6.15.0",
+    "near-seed-phrase": "0.2.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
