@@ -4,11 +4,12 @@ Status: implementation review only; no external audit. EVM and NEAR components a
 
 ## Verified implementation
 
-Latest verified runs: [Foundry CI](https://github.com/Godwin-web3/AfterState/actions/runs/43239292839) and [NEAR adapter CI + release WASM artifact](https://github.com/Godwin-web3/AfterState/actions/runs/43238949473).
+Latest verified runs: [Foundry CI](https://github.com/Godwin-web3/AfterState/actions/runs/43240885726), [NEAR adapter CI + release WASM artifact](https://github.com/Godwin-web3/AfterState/actions/runs/43240294674), and [live MPC state query](https://github.com/Godwin-web3/AfterState/actions/runs/43240885721).
 
-- Foundry CI passed 20 tests on commit 1a9c137a015ad214c67eb5951b4cc7e4b3da80fd.
-- NEAR CI passed 16 Rust tests, validated the live-state query script, checked the adapter for wasm32-unknown-unknown, built the release WASM and uploaded the artifact on commit 094cba9f2c4525a18b54bf395473adceac0a1d71.
-- The uploaded artifact archive SHA-256 is c5772f86d40c4cdecc95e66340dc2c1fe4c6d38cb9d60c53c56309ff9fe7e50f.
+- Foundry CI passed 20 tests on commit f3b439bb5bb17444d783a67415404a76dceae6d8.
+- NEAR CI passed 18 Rust tests, validated the live-state query script, checked the adapter for wasm32-unknown-unknown, built the release WASM and uploaded the artifact on commit 51b5ace90db77c96ab23933ee00593fde4875a31.
+- The uploaded adapter artifact archive SHA-256 is fd4e5251e78031283868bd66536a3c25e2054c2323a4de338cffbc616b15f455.
+- Live MPC state query confirmed Base support, a two-provider quorum, and separate live ForeignTx and Secp256k1 Sign domains on commit f3b439bb5bb17444d783a67415404a76dceae6d8.
 - EIP-712 digest fixture matches the Solidity verifier byte-for-byte for a deterministic fact, destination chain, verifier and registry.
 - MPC ForeignTx fixture uses NEAR MPC 3.19.0 pinned commit 86e2cc4d124397ec81f436b11f48bf9b6dfd062e and asserts both exact Borsh bytes and SHA-256 payload hash.
 - SourcePayment decoder checks exact topic0, topic count, ABI data length, canonical address padding, integer bounds and nonzero fields.
