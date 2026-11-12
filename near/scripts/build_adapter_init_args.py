@@ -53,8 +53,8 @@ def main() -> None:
     signature_callback_gas = integer("SIGNATURE_CALLBACK_GAS_TGAS", "30")
     if signature_callback_gas <= 0:
         raise SystemExit("signature callback gas must be non-zero")
-    if foreign_callback_gas <= sign_call_gas + signature_callback_gas:
-        raise SystemExit("ForeignTx callback gas must cover the follow-on Sign call and signature callback")
+    if foreign_callback_gas < sign_call_gas + signature_callback_gas + 10:
+        raise SystemExit("ForeignTx callback gas must cover follow-on promises and reserve 10 Tgas for callback execution")
 
     min_amount = integer("MIN_AMOUNT")
     max_amount = integer("MAX_AMOUNT")
