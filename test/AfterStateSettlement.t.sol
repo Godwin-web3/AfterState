@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import {AfterStateRegistry} from "../contracts/AfterStateRegistry.sol";
 import {AfterStateEIP712Verifier} from "../contracts/AfterStateEIP712Verifier.sol";
-import {AfterStateERC20Settlement} from "../contracts/AfterStateERC20Settlement.sol";
+import {AfterStateERC20Settlement, IAfterStateFactRegistry} from "../contracts/AfterStateERC20Settlement.sol";
 import {IAfterStateVerifier} from "../contracts/IAfterStateVerifier.sol";
 
 interface VmSettlement {
