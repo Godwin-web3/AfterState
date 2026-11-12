@@ -172,9 +172,12 @@ impl AfterStateNearAdapter {
             payment.source_timestamp <= now_seconds,
             "source event timestamp is in the future"
         );
+        // The EVM registry requires expiresAt > observedAt. Since expiresAt is
+        // the agreement deadline, a payment timestamp equal to the deadline
+        // would produce a fact that can never be consumed.
         require!(
-            payment.source_timestamp <= self.agreement_deadline,
-            "source payment is after agreement deadline"
+            payment.source_timestamp < self.agreement_deadline,
+            "source payment must precede agreement deadline"
         );
         require!(
             candidate.transaction_hash != [0; 32]
