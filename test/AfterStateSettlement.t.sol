@@ -52,6 +52,8 @@ contract AfterStateSettlementTest {
         settlement = new AfterStateERC20Settlement(
             IAfterStateFactRegistry(address(registry))
         );
+        vm.prank(owner);
+        registry.setSettlementAdapter(address(settlement));
 
         vm.prank(owner);
         registry.createAgreement(
@@ -109,6 +111,20 @@ contract AfterStateSettlementTest {
             abi.encodeCall(AfterStateERC20Settlement.settleERC20, (AGREEMENT, keccak256("unknown")))
         );
         require(!ok, "unattested settlement succeeded");
+    }
+
+    function testSecondSettlementAdapterCannotClaimSameFact() public {
+        bytes32 nonce = keccak256("settlement-nonce-rogue");
+        _attest(nonce);
+        AfterStateERC20Settlement rogue = new AfterStateERC20Settlement(
+            IAfterStateFactRegistry(address(registry))
+        );
+        token.mint(address(rogue), 500);
+        (bool ok,) = address(rogue).call(
+            abi.encodeCall(AfterStateERC20Settlement.settleERC20, (AGREEMENT, nonce))
+        );
+        require(!ok, "unconfigured adapter claimed a fact");
+        require(token.balanceOf(address(rogue)) == 500, "rogue adapter transferred funds");
     }
 
     function testCannotSettleSameFactTwice() public {
