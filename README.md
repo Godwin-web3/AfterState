@@ -33,7 +33,7 @@ The cross-language EIP-712 digest is tested against the Solidity verifier. The F
 - The current testnet snapshot shows ForeignTx domain 3 and a Secp256k1 Sign domain 0; the adapter enforces distinct IDs. The read-only [NEAR MPC Testnet State workflow](https://github.com/Godwin-web3/AfterState/actions/workflows/near-mpc-state.yml) now discovers the live ForeignTx and Secp256k1 Sign domains automatically. With the deployed adapter account, it can derive the exact EVM signer address for afterstate-v1. Always recheck before deployment.
 - The EVM verifier's signer version is an AfterState version, not the MPC domain ID. The derived EVM address for the NEAR adapter account and fixed path must be derived and configured explicitly.
 - v0.1 assumes the source and destination ERC-20 use the same address and amount units. Cross-chain asset mapping and decimal conversion are not implemented.
-- SourcePayment is an irreversible source-chain payment, not escrow. Destination settlement is not atomic with it; there is no automatic refund if destination execution fails.
+- SourcePayment is an irreversible source-chain payment, not escrow. Destination settlement is not atomic with it; there is no automatic refund if destination execution fails. The reference flow makes a separate, pre-funded destination-chain payout of the attested asset/amount; it does not lock or burn the source asset and does not conserve supply across chains. It is an execution-assurance demo, not a bridge.
 - The current NEAR adapter uses one immutable agreement per deployment and an authorized submitter. It does not yet provide a multi-agreement registry or public relayer marketplace.
 
 ## Layout
