@@ -15,6 +15,8 @@ cargo build --release --target wasm32-unknown-unknown --manifest-path near/adapt
 
 ## 2. Inspect live MPC testnet state
 
+A read-only query on 2026-11-12 confirmed live contract version 3.18.0, Base availability, three whitelisted Base RPC providers with quorum 2, ForeignTx domain 3, and Secp256k1 Sign domain 0. See [MPC_TESTNET_SNAPSHOT.md](MPC_TESTNET_SNAPSHOT.md) and [workflow run 43239982726](https://github.com/Godwin-web3/AfterState/actions/runs/43239982726). Treat those IDs and values as a dated snapshot, not constants.
+
 Do not assume the contract account, domain IDs, Base availability, provider quorum, or gas values from tutorials or example configuration.
 
 Against the current official NEAR testnet MPC account, make these read-only view calls:
@@ -26,7 +28,7 @@ Against the current official NEAR testnet MPC account, make these read-only view
 - public_key({domain_id: SIGN_DOMAIN}) — confirm the Sign domain exposes secp256k1.
 - derived_public_key({path: "afterstate-v1", predecessor: ADAPTER_ACCOUNT, domain_id: SIGN_DOMAIN}) — derive the adapter's exact application key.
 
-The ForeignTx domain must have ForeignTx purpose; the signing domain must have Sign purpose; their IDs must differ. The adapter enforces distinct IDs, and MPC independently checks each request's purpose.
+The ForeignTx domain must have ForeignTx purpose; the signing domain must have Sign purpose and expose Secp256k1. Their IDs must differ. The adapter enforces distinct IDs, and MPC independently checks each request's purpose. The live testnet currently requires at least 15 Tgas on both ForeignTx and Sign requests; the adapter constructor rejects lower values.
 
 If Base is absent from the live available-chain view, stop. Do not silently switch chains or weaken finality.
 
