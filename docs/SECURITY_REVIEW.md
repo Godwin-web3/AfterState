@@ -1,52 +1,58 @@
-# Security Review — Initial EVM Reference
+# Security Review — Initial Cross-Chain Prototype
 
-Status: initial implementation review; no external audit. The EVM contracts are experimental.
+Status: implementation review only; no external audit. EVM and NEAR components are experimental.
 
 ## Verified implementation
 
-The Foundry CI run on commit 2a567b12ab4eb5b1c3fa37a65a25431b3729944a compiled Solidity 0.8.24 and passed all 15 tests (11 registry/verifier tests and 4 settlement tests). This is a narrow unit-test baseline, not a security audit or proof of production readiness.
+- Foundry CI passed 19 tests on commit b11e7348764417545829ed0da4d3296d944e5f13.
+- NEAR Rust CI passed 11 tests and checked the adapter for wasm32-unknown-unknown on the same commit.
+- EIP-712 digest fixture matches the Solidity verifier byte-for-byte for a deterministic fact, destination chain, verifier and registry.
+- MPC ForeignTx fixture uses NEAR MPC 3.19.0 pinned commit 86e2cc4d124397ec81f436b11f48bf9b6dfd062e and asserts both exact Borsh bytes and SHA-256 payload hash.
+- SourcePayment decoder checks exact topic0, topic count, ABI data length, canonical address padding, integer bounds and nonzero fields.
+- NEAR adapter validates the candidate SourcePayment against its configured source emitter and agreement before calling MPC.
+- NEAR adapter requires expected_payload_hash, waits for the MPC ForeignTx callback, checks the returned hash, then calls the distinct Sign-purpose domain with fixed derivation path afterstate-v1.
+- MPC secp256k1 signature conversion checks recovery ID, compressed R-point prefix, r range and low-s canonicality before returning EVM r||s||v.
+- EVM EIP-712 verifier binds signatures to chain ID and verifier address, and supports versioned signer keys and revocation.
+- EVM registry checks agreement constraints, consumes nonces and source transaction/log identities once, and globally claims each accepted fact once for the configured settlement adapter.
+- Source emitter transfers the exact requested ERC-20 amount before emitting SourcePayment; fee-on-transfer and inexact transfers revert.
 
-- EIP-712 domain binds signatures to chain ID and verifier contract.
-- Typed fact binds source chain, emitter, schema, agreement, block/transaction/log identity, asset, amount, recipient, timestamps, key version, agreement version, finality-policy ID, nonce and destination registry.
-- Registry checks agreement constraints before signature verification.
-- Nonces and source transaction/log identities are consumed once.
-- Source-log identity excludes block hash so a transaction re-included after a reorg cannot be accepted as a second payment.
-- Signer versions are immutable once configured and can be revoked.
-- Settlement is restricted to one owner-configured adapter; the registry globally claims each accepted fact once.
-- Settlement uses checks-effects-interactions, a reentrancy guard, and exact escrow/recipient ERC-20 balance deltas.
+## Important limitations and trust boundaries
 
-## Important limitations
-
-1. The EIP-712 verifier authenticates an authorized signer only. It does not prove that the source-chain observation is true.
-2. finalityPolicyId is signed metadata. It is not an on-chain finality proof.
-3. The current settlement adapter pays from pre-funded destination inventory. It does not atomically lock or refund the source-chain payment.
-4. The adapter supports conventional boolean-returning ERC-20s. Fee-on-transfer, rebasing, malicious, or non-standard tokens may fail or behave unexpectedly. Asset allowlisting and token-specific review are required.
-5. The registry owner controls agreements, verifier replacement and settlement-adapter replacement. Production deployment needs governance/timelock or a constrained immutable configuration.
-6. The source-chain event schema is represented by a topic/schema hash and must be decoded/validated exactly by the attestation producer.
-7. Reorg handling depends on the source-observation system's finality policy. Preventing duplicate log identity does not prove finality.
-8. The NEAR ForeignTx request builder and MPC verification callback are implemented and WASM-target checked. The adapter does not yet decode/validate the AfterState source event against an agreement, compute the exact AfterState EIP-712 digest, or call Chain Signatures to issue the destination signature.
+1. The NEAR adapter has not been deployed or exercised against the live NEAR testnet MPC contract. The deployed ForeignTx domain, Sign domain, Base availability, provider quorum, root key and gas requirements remain live deployment gates.
+2. Read RPC is MPC-backed observation using configured RPC providers and MPC operators; it is not an EVM-verifiable light-client proof.
+3. The EVM destination trusts the configured derived signer. It does not independently verify the NEAR ForeignTx signature.
+4. The NEAR adapter currently supports one immutable agreement per deployment and an authorized submitter. It has no multi-agreement storage or permissionless relayer.
+5. v0.1 requires the source ERC-20 address to equal the destination ERC-20 address and assumes matching units/decimals. Asset mapping and conversion are not implemented.
+6. SourcePayment transfers funds irreversibly on the source chain. Destination settlement is not atomic; the source emitter is not escrow and does not provide refunds.
+7. observedAt in the EIP-712 fact is populated from the source event's block timestamp, not the NEAR callback time.
+8. The configured finalityPolicyId is signed metadata. The actual MPC request uses EvmFinality::Finalized, but the EVM registry does not independently validate this policy ID.
+9. Settlement uses pre-funded destination inventory and conventional boolean-returning ERC-20s with exact balance-delta checks. Fee-on-transfer, rebasing and nonstandard assets are unsupported.
+10. The EVM registry owner controls agreement creation, verifier replacement and settlement adapter replacement. Production deployment needs constrained governance or immutable configuration.
 
 ## Fixed during implementation
 
-- Agreement IDs could initially be reused after deactivation. Added a permanent agreementEverCreated guard.
-- An accepted fact could initially be paid by multiple independently deployed settlement adapters. Added a single configured adapter and registry-level one-time claim.
-- Source-log replay identity initially included block hash. Removed block hash from the replay key to prevent re-inclusion from creating a second consumable identity.
-- The registry initially allowed zero-address assets even though the settlement adapter only supports ERC-20. Zero-address assets are now rejected at agreement creation.
+- Agreement IDs cannot be recreated after deactivation.
+- One accepted fact cannot be paid by multiple settlement adapters.
+- Source-log replay identity excludes block hash so re-inclusion cannot create a second consumable identity.
+- Zero-address assets and zero finality policy IDs are rejected.
+- Source emitter rejects inexact ERC-20 transfers.
+- The MPC ForeignTx Borsh fixture was corrected to use one-byte Borsh enum discriminants and is pinned against official 3.19.0 types.
 
-## Required next tests
+## Required next validation
 
-- Fee-on-transfer token causes atomic revert and does not leave the fact claimed.
-- Reentrant token callback cannot settle twice.
-- Adapter replacement and owner compromise assumptions are documented and tested.
-- Signer rotation/revocation edge cases and malformed ECDSA signatures.
-- Fuzz source facts across all agreement fields and timestamps.
-- Byte-for-byte Borsh payload hash fixtures against pinned NEAR MPC 3.19.0 types (one deterministic Base EVM fixture now passes in CI).
-- End-to-end NEAR testnet tests for wrong payload hash, malformed/missing/removed log, wrong log index, non-finalized receipt, provider-quorum failure and callback timeout.
-- Application-event decoding tests and Chain Signatures EIP-712 signature recovery against the configured EVM verifier.
-- Verify that the NEAR contract uses a fixed derivation path and never signs arbitrary caller-supplied digests.
+- Query live testnet MPC state for active domain IDs/purposes, schemes, root keys, participants, threshold and available chains.
+- Derive the EVM signer address for the deployed NEAR adapter account plus fixed path afterstate-v1; configure the EVM verifier at the matching signer_version and verify recovery on-chain.
+- Deploy source emitter and identical-address test token on Base Sepolia and the destination EVM testnet.
+- Deploy the NEAR adapter with matching agreement/deadline/token/recipient/finality settings and live MPC gas parameters.
+- Submit a real Base Sepolia SourcePayment transaction; verify MPC ForeignTx, NEAR Chain Signature, EVM consumeSourceFact and destination settlement end-to-end.
+- Test wrong payload hash, wrong log index, removed log, wrong emitter/topic/data, non-finalized receipt, provider quorum failure and both callback failure paths.
+- Add stateful NEAR replay/pending request tracking before exposing a public relayer.
+- Add source/destination asset mapping before supporting assets with different addresses or decimals.
+- Test fee-on-transfer token rollback, reentrant token callbacks, signer rotation/revocation and owner compromise.
 
-## NEAR integration references
+## Primary references
 
 - https://github.com/near/mpc/releases/tag/3.19.0
 - https://github.com/near/mpc/blob/86e2cc4d124397ec81f436b11f48bf9b6dfd062e/crates/contract/src/api/foreign_chain/requests.rs
 - https://github.com/near/mpc/blob/86e2cc4d124397ec81f436b11f48bf9b6dfd062e/crates/near-mpc-contract-interface/src/types/foreign_chain.rs
+- https://github.com/near/mpc/blob/86e2cc4d124397ec81f436b11f48bf9b6dfd062e/crates/near-mpc-crypto-types/src/sign.rs
