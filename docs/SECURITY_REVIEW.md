@@ -4,11 +4,11 @@ Status: implementation review only; no external audit. EVM and NEAR components a
 
 ## Verified implementation
 
-Latest verified runs: [Foundry CI](https://github.com/Godwin-web3/AfterState/actions/runs/43241421852), [NEAR adapter CI + release WASM artifact](https://github.com/Godwin-web3/AfterState/actions/runs/43240294674), and [live MPC state query](https://github.com/Godwin-web3/AfterState/actions/runs/43240885721).
+Latest verified runs: [Foundry CI](https://github.com/Godwin-web3/AfterState/actions/runs/43241421852), [NEAR adapter CI + release WASM artifact](https://github.com/Godwin-web3/AfterState/actions/runs/43242707323), and [live MPC state query](https://github.com/Godwin-web3/AfterState/actions/runs/43240885721).
 
-- Foundry CI passed 22 tests on commit b2c68d320047e4799bd81db698f221aaba634eb2.
-- NEAR CI passed 18 Rust tests, validated the live-state query script, checked the adapter for wasm32-unknown-unknown, built the release WASM and uploaded the artifact on commit 51b5ace90db77c96ab23933ee00593fde4875a31.
-- The uploaded adapter artifact archive SHA-256 is fd4e5251e78031283868bd66536a3c25e2054c2323a4de338cffbc616b15f455.
+- Foundry CI passed 22 tests on commit 14aea4168ac44fcce8757d9961846a251019a8da.
+- NEAR CI passed 19 Rust tests, validated the live-state and adapter deployment scripts, checked the adapter for wasm32-unknown-unknown, built the release WASM and uploaded the artifact on commit 46fbfd242e5930a090b07c3c9dd46c363ad910b1.
+- The uploaded adapter artifact archive SHA-256 is 216d604ebf4f5a3d6505335345350a3701f00c7cdbe4c9662edfb87161c5da6a.
 - Live MPC state query confirmed Base support, a two-provider quorum, and separate live ForeignTx and Secp256k1 Sign domains on commit f3b439bb5bb17444d783a67415404a76dceae6d8.
 - EIP-712 digest fixture matches the Solidity verifier byte-for-byte for a deterministic fact, destination chain, verifier and registry.
 - MPC ForeignTx fixture uses NEAR MPC 3.19.0 pinned commit 86e2cc4d124397ec81f436b11f48bf9b6dfd062e and asserts both exact Borsh bytes and SHA-256 payload hash.
