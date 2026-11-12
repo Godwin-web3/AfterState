@@ -5,7 +5,7 @@ use near_mpc_contract_interface::types::{
     DomainId, Hash256, VerifyForeignTransactionResponse,
 };
 use near_sdk::{
-    env, ext_contract, near, private, require, AccountId, Gas, NearToken, PanicOnDefault, Promise, PromiseError,
+    env, ext_contract, near, require, AccountId, Gas, NearToken, PanicOnDefault, Promise, PromiseError,
 };
 
 #[ext_contract(ext_mpc)]
@@ -80,6 +80,7 @@ impl AfterStateNearAdapter {
 
         let expected_payload_hash = request
             .expected_payload_hash
+            .clone()
             .expect("builder always sets expected_payload_hash");
 
         ext_mpc::ext(self.mpc_contract_id.clone())
@@ -93,12 +94,15 @@ impl AfterStateNearAdapter {
             )
     }
 
-    #[private]
     pub fn on_foreign_tx_verified(
         &self,
         expected_payload_hash: Hash256,
         #[callback_result] result: Result<VerifyForeignTransactionResponse, PromiseError>,
     ) -> VerifyForeignTransactionResponse {
+        require!(
+            env::predecessor_account_id() == env::current_account_id(),
+            "private callback"
+        );
         let response = result.unwrap_or_else(|_| {
             env::panic_str("NEAR MPC ForeignTx verification failed")
         });
