@@ -24,7 +24,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
       - name: Run pinned MPC serialization fixtures
         run: |
           cargo test --manifest-path near/foreign-tx-fixtures/Cargo.toml
-          cargo check --manifest-path near/adapter/Cargo.toml
+          cargo check --manifest-path near/adapter/Cargo.toml --target wasm32-unknown-unknown
