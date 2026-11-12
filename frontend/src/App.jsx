@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { BrowserProvider, JsonRpcProvider, Interface, id, randomBytes, hexlify, parseUnits } from 'ethers';
-import { NearConnector } from '@hot-labs/near-connect';
 import { extractEvmSignature, extractNearTxHash, fixedBytes, readAdapterConfig, waitForNearOutcome } from './near';
 import { Activity, ArrowDownLeft, ArrowRight, ArrowUpRight, BadgeCheck, Check, CheckCircle2, ChevronDown, CircleAlert, Code2, Copy, ExternalLink, FileCheck2, Fingerprint, Gauge, Layers3, Menu, Plus, RadioTower, RefreshCw, Settings2, Shield, Wallet, X, Zap } from 'lucide-react';
 import { CHAINS, DEFAULT_CONFIG, REGISTRY_ABI, SOURCE_ABI, TOKEN_ABI, SETTLEMENT_ABI, compact, validAddress } from './protocol';
@@ -41,23 +40,18 @@ export default function App() {
     return () => { window.ethereum.removeListener?.('accountsChanged',accounts); window.ethereum.removeListener?.('chainChanged',chain); };
   },[]);
 
-  useEffect(() => {
-    const connector = new NearConnector({ network:'testnet', features:{ testnet:true, signAndSendTransaction:true }, footerBranding:null });
-    nearConnector.current = connector;
-    const onSignIn = event => setNearAccount(event?.accounts?.[0]?.accountId || '');
-    const onSignOut = () => setNearAccount('');
-    connector.on('wallet:signIn', onSignIn);
-    connector.on('wallet:signOut', onSignOut);
-    return () => {
-      connector.off?.('wallet:signIn', onSignIn);
-      connector.off?.('wallet:signOut', onSignOut);
-    };
-  },[]);
-
   async function connectNear() {
     try {
-      await nearConnector.current.connect();
-      const wallet = await nearConnector.current.wallet();
+      if (!nearConnector.current) {
+        const { NearConnector } = await import('@hot-labs/near-connect');
+        const connector = new NearConnector({ network:'testnet', features:{ testnet:true, signAndSendTransaction:true }, footerBranding:null });
+        connector.on('wallet:signIn', event => setNearAccount(event?.accounts?.[0]?.accountId || ''));
+        connector.on('wallet:signOut', () => setNearAccount(''));
+        nearConnector.current = connector;
+      }
+      const connector = nearConnector.current;
+      await connector.connect();
+      const wallet = await connector.wallet();
       const accounts = await wallet.getAccounts?.();
       if (accounts?.[0]?.accountId) setNearAccount(accounts[0].accountId);
       else if (typeof accounts?.[0] === 'string') setNearAccount(accounts[0]);
