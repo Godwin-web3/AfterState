@@ -22,6 +22,7 @@ view_call() {
     '{jsonrpc:"2.0",id:"afterstate-state-check",method:"query",params:{request_type:"call_function",finality:"final",account_id:$account,method_name:$method,args_base64:$args}}')"
   local response
   response="$(curl --fail --silent --show-error \
+    --connect-timeout 10 --max-time 45 \
     -H 'Content-Type: application/json' \
     -d "$payload" "$RPC_URL")"
   if printf '%s' "$response" | jq -e '.error' >/dev/null; then
