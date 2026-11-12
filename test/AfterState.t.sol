@@ -63,6 +63,8 @@ contract AfterStateTest {
             observedAt: uint64(block.timestamp),
             expiresAt: uint64(block.timestamp + 1 hours),
             keyVersion: 1,
+            agreementVersion: 1,
+            finalityPolicyId: keccak256("sepolia-12-confirmations"),
             nonce: nonce
         });
     }
