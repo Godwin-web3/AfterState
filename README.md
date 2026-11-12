@@ -18,8 +18,8 @@ The cross-language EIP-712 digest is tested against the Solidity verifier. The F
 
 ## CI status
 
-- Foundry: **22 tests passed, 0 failed** on commit `14aea4168ac44fcce8757d9961846a251019a8da`.
-  https://github.com/Godwin-web3/AfterState/actions/runs/43243086146
+- Foundry: **22 tests passed, 0 failed** on commit `12527ee36c88382eee2aec113aaf39dbe52b265a`.
+  https://github.com/Godwin-web3/AfterState/actions/runs/43244523696
 - NEAR adapter: **19 Rust tests passed** against the exact live MPC 3.18.0 interface pin. Deployment argument validation (including negative gas-budget cases), WASM checks and release artifact upload all passed:
   https://github.com/Godwin-web3/AfterState/actions/runs/43243798186
   Artifact: [afterstate-near-adapter-wasm](https://github.com/Godwin-web3/AfterState/actions/runs/43243798186)
