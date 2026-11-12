@@ -1,6 +1,6 @@
 //! Version-pinned NEAR MPC ForeignTx payload construction helpers.
 //!
-//! This crate intentionally depends on the exact NEAR MPC 3.19.0 interface
+//! This crate intentionally depends on the exact NEAR MPC 3.18.0 interface
 //! commit. Updating that pin is a protocol change: review DTO/Borsh changes
 //! and regenerate the regression fixtures deliberately.
 
@@ -11,8 +11,8 @@ use near_mpc_contract_interface::types::{
     Hash160, Hash256, VerifyForeignTransactionRequestArgs, DomainId,
 };
 
-pub const MPC_RELEASE: &str = "3.19.0";
-pub const MPC_COMMIT: &str = "86e2cc4d124397ec81f436b11f48bf9b6dfd062e";
+pub const MPC_RELEASE: &str = "3.18.0";
+pub const MPC_COMMIT: &str = "e691bdb98d68dcf74653da58d043453a6318765f";
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BaseEvmLogCandidate {
@@ -32,7 +32,7 @@ pub enum CandidateError {
     RemovedLog,
 }
 
-/// Constructs the exact MPC 3.19.0 Base ForeignTx request and expected payload
+/// Constructs the exact MPC 3.18.0 Base ForeignTx request and expected payload
 /// hash for a candidate receipt log. The returned request is still only a
 /// candidate: MPC independently extracts the transaction/log from its
 /// configured providers and rejects a payload-hash mismatch.
