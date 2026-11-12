@@ -1,64 +1,83 @@
 # NEAR Integration Architecture Decision
 
-Status: source-interface researched; end-to-end adapter not yet implemented.
+Status: MPC interface researched and pinned; deterministic serialization fixture added; NEAR contract and end-to-end adapter not yet implemented.
 
-## Confirmed MPC interface
+## Version pin
 
-The current `near/mpc` main-branch code exposes `verify_foreign_transaction`. This is not a generic arbitrary-message signing oracle. A caller submits a chain-specific transaction request containing:
-- a source transaction ID;
-- a bounded list of extractors (maximum 32);
-- a chain-specific finality selector;
-- a ForeignTx-purpose MPC domain;
-- a payload version and optional expected payload hash.
+The integration baseline is NEAR MPC 3.19.0, release commit 86e2cc4d124397ec81f436b11f48bf9b6dfd062e. Do not code against floating main or older tutorial DTOs. Release 3.19.0 includes changes to ForeignTx whitelist/enforcement behavior, attestation expiry and ECDSA signing internals. Review release notes before changing this pin:
+https://github.com/near/mpc/releases/tag/3.19.0
 
-For EVM chains, the current interface exposes:
-- `EvmFinality::Finalized`, `Safe`, or `Latest`;
-- `EvmExtractor::BlockHash`;
-- `EvmExtractor::Log { log_index }`;
-- extracted log fields: removed flag, log index, transaction index/hash, block hash/number, emitter address, data and topics.
+In this release the foreign-chain DTOs are consolidated in:
+https://github.com/near/mpc/blob/86e2cc4d124397ec81f436b11f48bf9b6dfd062e/crates/near-mpc-contract-interface/src/types/foreign_chain.rs
 
-The MPC response contains a `payload_hash` and recoverable secp256k1 signature. The signed message is the SHA-256 hash of the Borsh-serialized `ForeignTxSignPayload::V1`, which contains the exact request and extracted values. This means the source log can be authenticated without trusting a single application-operated RPC endpoint, but the destination must verify the correct MPC signature and the exact payload encoding. Do not treat the returned signature as an EIP-712 signature over AfterState's current SourceFact struct.
+The request and contract entrypoint definitions are:
+- https://github.com/near/mpc/blob/86e2cc4d124397ec81f436b11f48bf9b6dfd062e/crates/near-mpc-contract-interface/src/types/foreign_chain/request.rs
+- https://github.com/near/mpc/blob/86e2cc4d124397ec81f436b11f48bf9b6dfd062e/crates/contract/src/api/foreign_chain/requests.rs
+- https://github.com/near/mpc/blob/86e2cc4d124397ec81f436b11f48bf9b6dfd062e/crates/near-mpc-crypto-types/src/sign.rs
+- https://github.com/near/mpc/blob/86e2cc4d124397ec81f436b11f48bf9b6dfd062e/crates/near-mpc-contract-interface/src/deposits.rs
 
-The MPC contract requires the ForeignTx domain to be active and the requested chain to be available. The request path requires an attached deposit of at least 1 yoctoNEAR. The public contract interface documents a maximum of 32 extractors. See primary source files:
-- https://github.com/near/mpc/blob/main/crates/contract/src/api/foreign_chain/requests.rs
-- https://github.com/near/mpc/blob/main/crates/near-mpc-contract-interface/src/types/foreign_chain/chains/evm.rs
-- https://github.com/near/mpc/blob/main/crates/near-mpc-contract-interface/src/types/foreign_chain/sign_payload.rs
-- https://github.com/near/mpc/blob/main/crates/near-mpc-sdk/src/foreign_chain/evm.rs
-- https://github.com/near/mpc/blob/main/deployment/cvm-deployment/user-config.toml (example testnet foreign-chain RPC configuration)
+## Confirmed ForeignTx interface
 
-## Proposed flow
+The payable verify_foreign_transaction method accepts VerifyForeignTransactionRequestArgs:
+- request: a chain-specific ForeignChainRpcRequest;
+- domain_id: a DomainId whose live purpose must be ForeignTx;
+- payload_version: ForeignTxPayloadVersion::V1 (wire integer 1);
+- expected_payload_hash: optional Hash256, which AfterState MUST supply.
 
-1. A source EVM contract emits a typed AfterState event containing agreement ID/version, beneficiary, asset and amount.
-2. The adapter submits `verify_foreign_transaction` for the source transaction hash, requesting both `BlockHash` and the exact `Log { log_index }`, with `Finalized` finality.
-3. The application may obtain a *candidate* receipt/log from an ordinary RPC endpoint. The request must include `expected_payload_hash` (not `None`); the MPC contract rejects a returned payload hash that differs from this expectation. It constructs the expected `EvmLog` and uses the official SDK builder's `.with_expected_log(log_index, expected_log)` plus `.with_finality(EvmFinality::Finalized)`. The builder computes the expected Borsh payload hash. The NEAR contract submits that `expected_payload_hash`; MPC nodes independently inspect the source transaction and only return a response if their extracted payload hashes to the exact expected value. A lying candidate RPC therefore causes a mismatch rather than a false attestation, assuming the MPC verification path and provider quorum behave as specified.
-4. The NEAR contract validates the candidate log's emitter, topic0/event schema, agreement ID/version, asset, amount and beneficiary against the agreement, and checks that the MPC response payload hash equals the contract-computed expected hash. The MPC signer contract verifies the threshold signature before returning the response. The NEAR contract can then request a separate Chain Signatures `sign` operation over the AfterState EIP-712 digest, using a key derived for the NEAR contract and a fixed application path. Configure the EVM verifier with that derived EVM address. This avoids a backend-held private key, while retaining explicit trust in NEAR's MPC network and the NEAR contract code.
-5. The EVM registry consumes the source fact exactly once.
-6. The single configured destination settlement adapter executes the payout and checks exact ERC-20 balance deltas atomically.
+For EVM:
+- EvmFinality: Latest, Safe or Finalized.
+- EvmExtractor: BlockHash or Log { log_index }.
+- EvmLog: removed, log_index, transaction_index, transaction_hash, block_hash, block_number, address, data and topics.
+- Base is a ForeignChainRpcRequest variant and maps to chain ID 84532 in the MPC testnet node configuration.
 
-The existing EVM `AfterStateEIP712Verifier` can accept this derived MPC key once the owner configures its address. However, the repository does not yet contain the NEAR contract, candidate-log builder, MPC callback flow, or Chain Signatures signing call.
-## Hard integration gates
+The MPC constructs ForeignTxSignPayload::V1 from the exact request and extracted values, Borsh-serializes it and SHA-256 hashes the bytes. The response carries payload_hash and a recoverable secp256k1 signature. The signer contract verifies the response signature against the domain root key and rejects a payload_hash that differs from expected_payload_hash.
 
-- Confirm the exact deployed signer contract and ForeignTx domain on NEAR testnet; do not assume mainnet interface details are available identically on testnet.
-- The current MPC repository's example testnet node configuration includes Base Sepolia (chain ID 84532) providers; it does not establish that Ethereum Sepolia is configured or that Base is currently enabled in the live contract's available foreign-chain set. Prefer Base Sepolia for the first prototype only after confirming live availability.
-- Confirm the configured EVM finality selector and provider quorum behavior.
-- Validate that the requested log index extraction returns the full canonical log and that the MPC's extracted payload binds transaction ID, finality, block hash and exact log.
-- Use the official SDK for response signature verification and payload construction; pin a released version or commit.
-- Determine whether the ForeignTx root key is stable and how domain rotation/resharing affects EVM verification.
-- Test malformed, missing, removed, wrong-index and reorged logs.
+This is not an EIP-712 signature over AfterState SourceFact. Do not feed the ForeignTx signature into the EVM EIP-712 verifier.
 
-## Trust and security assumptions to publish
+## Base Sepolia configuration and live gate
 
-The October 23, 2026 NEAR architecture announcement states that the MPC network uses 11-of-17 operators and that Read MPC requires a whitelisted quorum of at least 3-of-5 RPC providers. Treat those as dated mainnet architecture statements, not immutable guarantees or assumptions about a particular testnet deployment. Also disclose:
-- RPC provider allowlist, quorum and provider independence;
-- MPC signer/operator threshold and active set for the exact network;
-- TEE hardware and attestation assumptions;
-- source-chain finality rule and reorg handling;
-- supported transaction/event formats and decoding rules;
-- contract/interface version, domain/key rotation and revocation behavior;
-- liveness assumptions: RPC quorum or MPC unavailability can delay observation.
+The MPC 3.19.0 example testnet node configuration includes Base Sepolia and expected network fingerprint 84532:
+https://github.com/near/mpc/blob/86e2cc4d124397ec81f436b11f48bf9b6dfd062e/deployment/cvm-deployment/user-config.toml
 
-This is not an EVM-verifiable light-client proof unless the destination verifies a proof with equivalent independent security. The RPC quorum and MPC operator set remain part of the trust model.
+That proves Base Sepolia is in the example node configuration, not that the currently deployed testnet contract has Base in its live available-chain set. The contract checks get_available_foreign_chains() before accepting a request. Query the deployed contract at runtime before committing to the demo path.
 
-## Current implementation boundary
+## Exact request construction
 
-The EVM EIP-712 verifier currently authenticates a configured signer. It does not verify the NEAR ForeignTx MPC signature or reconstruct the Borsh payload. The EIP-712 `finalityPolicyId` is a signed policy identifier, not an independently enforced finality proof. No NEAR adapter is implemented yet.
+The JSON request shape is specified in near/REQUEST_SCHEMA.md. It uses:
+- ForeignChainRpcRequest::Base;
+- EvmFinality::Finalized;
+- both BlockHash and Log { log_index } extractors;
+- payload_version = 1;
+- expected_payload_hash = Some(the locally computed expected V1 hash).
+
+The expected hash is critical. An ordinary RPC receipt is only a candidate. The NEAR adapter must construct the exact expected EvmLog and calculate the exact MPC payload hash before submitting. MPC nodes independently inspect the source transaction through their configured providers. If their extracted values differ, the contract rejects the response.
+
+Do not implement a hand-written, partial Borsh encoder. The repo now has near/foreign-tx-fixtures, which imports the exact 3.19.0 interface commit and tests a deterministic Base EVM payload hash. This fixture is the serialization regression guard. Any MPC upgrade must review the type changes and regenerate fixtures deliberately.
+
+## Proposed two-stage NEAR flow
+
+1. User submits a source transaction hash and log index to the NEAR AfterState contract.
+2. Contract validates agreement configuration and obtains a candidate receipt/log from a configured RPC path or receives candidate values as input. Candidate values are untrusted until MPC confirms them.
+3. Contract validates candidate emitter, topic0/schema, agreement ID/version, asset, amount and beneficiary against the agreement. Reject removed logs, wrong transaction hash, wrong log index, malformed topics/data and mismatched block metadata.
+4. Contract constructs exact EVM request and EvmLog values, computes the official V1 Borsh+SHA-256 payload hash, and calls verify_foreign_transaction with expected_payload_hash set.
+5. Callback checks promise success and exact returned payload hash. No accepted fact is stored on timeout or error.
+6. After ForeignTx success, contract constructs the AfterState EIP-712 digest from the same validated fact and calls the separate sign method on a Sign-purpose domain. The path is fixed in contract code and is not caller-controlled. The payload is not caller-supplied.
+7. Callback validates the returned signature and returns the EIP-712 signature. Configure the EVM verifier with the derived EVM address for this NEAR contract account and fixed path.
+8. EVM registry consumes the fact once; the single configured settlement adapter claims and settles it once.
+
+The ForeignTx-purpose domain and Sign-purpose domain are distinct. The contract must query live state and configure their IDs rather than assume a domain number. The normal sign API uses a Payload::Ecdsa payload and SignRequestArgs with path, payload_v2 and domain_id. The signer contract derives the key from the calling NEAR account and path; the path must therefore be stable and hard-coded for this adapter.
+
+## Live deployment and liveness gates
+
+- Query live testnet signer contract state: contract version, active domains and purposes, schemes, participants, threshold, root public keys, and available foreign chains.
+- Query the live Base availability and provider configuration/quorum. Example node config is not proof of live availability or provider independence.
+- Confirm contract/node compatibility with MPC 3.19.0 before making requests.
+- Read current Sign-domain root key and derive the EVM address for this NEAR contract account plus fixed path. Do not copy public keys from tutorials.
+- ForeignTx requests require the configured gas attachment and SIGN_DEPOSIT_YOCTONEAR (1 yoctoNEAR in the pinned interface); gas must be set to the deployed contract's current requirement, not a stale hardcoded tutorial value.
+- Test wrong expected hash, wrong log index, wrong emitter/topic/data, missing transaction, non-finalized receipt, provider-quorum failure, callback timeout, signer rotation and domain migration.
+
+## Trust and security assumptions
+
+Read RPC is MPC-backed foreign-chain observation using an allowlisted RPC provider set and an MPC operator threshold. It is not a light-client proof verified by the EVM destination. The EVM EIP-712 verifier still only verifies the configured derived signer. The trust boundary includes the NEAR contract code, MPC contract, MPC participants/threshold, TEE assumptions, foreign-chain RPC provider set and source-chain finality configuration.
+
+Do not copy mainnet threshold or provider quorum numbers into testnet claims. Publish the exact live values observed for the deployed testnet contract and active node set.
