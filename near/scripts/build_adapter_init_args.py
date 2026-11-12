@@ -49,10 +49,12 @@ def main() -> None:
     sign_call_gas = integer("SIGN_CALL_GAS_TGAS", "15")
     if mpc_call_gas < 15 or sign_call_gas < 15:
         raise SystemExit("live MPC testnet requires at least 15 Tgas for both MPC calls")
-    foreign_callback_gas = integer("FOREIGN_CALLBACK_GAS_TGAS", "30")
+    foreign_callback_gas = integer("FOREIGN_CALLBACK_GAS_TGAS", "60")
     signature_callback_gas = integer("SIGNATURE_CALLBACK_GAS_TGAS", "30")
-    if foreign_callback_gas <= 0 or signature_callback_gas <= 0:
-        raise SystemExit("adapter callback gas values must be non-zero")
+    if signature_callback_gas <= 0:
+        raise SystemExit("signature callback gas must be non-zero")
+    if foreign_callback_gas <= sign_call_gas + signature_callback_gas:
+        raise SystemExit("ForeignTx callback gas must cover the follow-on Sign call and signature callback")
 
     min_amount = integer("MIN_AMOUNT")
     max_amount = integer("MAX_AMOUNT")
