@@ -4,7 +4,7 @@ Status: implementation review only; no external audit. EVM and NEAR components a
 
 ## Verified implementation
 
-Latest verified runs: [Foundry CI](https://github.com/Godwin-web3/AfterState/actions/runs/43241421852), [NEAR adapter CI + release WASM artifact](https://github.com/Godwin-web3/AfterState/actions/runs/43242707323), and [live MPC state query](https://github.com/Godwin-web3/AfterState/actions/runs/43240885721).
+Latest verified runs: [Foundry CI](https://github.com/Godwin-web3/AfterState/actions/runs/43241421852), [NEAR adapter CI + release WASM artifact](https://github.com/Godwin-web3/AfterState/actions/runs/43242707323), and [live MPC state query](https://github.com/Godwin-web3/AfterState/actions/runs/43243643428).
 
 - Foundry CI passed 22 tests on commit 14aea4168ac44fcce8757d9961846a251019a8da.
 - NEAR CI passed 19 Rust tests, validated the live-state and adapter deployment scripts, checked the adapter for wasm32-unknown-unknown, built the release WASM and uploaded the artifact on commit 46fbfd242e5930a090b07c3c9dd46c363ad910b1.
