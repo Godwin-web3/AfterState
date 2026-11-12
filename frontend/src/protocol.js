@@ -14,6 +14,8 @@ export const REGISTRY_ABI = [
   'function verifier() view returns (address)',
   'function settlementAdapter() view returns (address)',
   'function createAgreement(bytes32,uint256,address,bytes32,address,address,uint128,uint128,uint64)',
+  'function agreements(bytes32) view returns (uint256 sourceChainId,uint256 destinationChainId,address sourceEmitter,bytes32 eventSchema,address asset,address recipient,uint128 minAmount,uint128 maxAmount,uint64 deadline,uint32 version,bool active)',
+  'function agreementEverCreated(bytes32) view returns (bool)',
   'function consumeSourceFact((uint256 sourceChainId,address emitter,bytes32 eventSchema,bytes32 agreementId,bytes32 sourceBlockHash,bytes32 sourceTxHash,uint256 sourceBlockNumber,uint256 logIndex,address asset,uint256 amount,address recipient,uint64 observedAt,uint64 expiresAt,uint32 keyVersion,uint32 agreementVersion,bytes32 finalityPolicyId,bytes32 nonce) fact,bytes proof)',
   'function getAcceptedFact(bytes32,bytes32) view returns ((uint256 sourceChainId,address emitter,bytes32 eventSchema,bytes32 agreementId,bytes32 sourceBlockHash,bytes32 sourceTxHash,uint256 sourceBlockNumber,uint256 logIndex,address asset,uint256 amount,address recipient,uint64 observedAt,uint64 expiresAt,uint32 keyVersion,uint32 agreementVersion,bytes32 finalityPolicyId,bytes32 nonce) fact,bool exists)'
 ];
