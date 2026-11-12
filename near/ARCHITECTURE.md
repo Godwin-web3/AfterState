@@ -56,7 +56,7 @@ Both MPC calls attach 1 yoctoNEAR. The observed live contract requires at least 
 
 ## Base Sepolia configuration and live gate
 
-The live testnet signer contract (version 3.18.0) returned Base in `get_available_foreign_chains()`. Its Base provider whitelist contains three providers with quorum 2. The dated evidence, including the active domain registry and root public keys, is recorded in [MPC_TESTNET_SNAPSHOT.md](MPC_TESTNET_SNAPSHOT.md) and [workflow run 43243643428](https://github.com/Godwin-web3/AfterState/actions/runs/43243643428).
+The live testnet signer contract (version 3.18.0) returned Base in `get_available_foreign_chains()`. Its Base provider whitelist contains three providers with quorum 2. The dated evidence, including the active domain registry and root public keys, is recorded in [MPC_TESTNET_SNAPSHOT.md](MPC_TESTNET_SNAPSHOT.md) and [workflow run 43244784087](https://github.com/Godwin-web3/AfterState/actions/runs/43244784087).
 
 The MPC 3.18.0 example testnet node configuration also includes Base Sepolia with expected network fingerprint 84532:
 https://github.com/near/mpc/blob/e691bdb98d68dcf74653da58d043453a6318765f/deployment/cvm-deployment/user-config.toml
