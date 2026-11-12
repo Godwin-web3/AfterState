@@ -41,5 +41,5 @@ fn digest_vector_matches_afterstate_solidity_typed_data() {
         address_from_u32(0x1001),
         address_from_u32(0x2002),
     );
-    assert_eq!(hex::encode(digest), "TODO");
+    assert_eq!(hex::encode(digest), "2777312f3d33227093724b91f52fcfbe122f595e2f5dcdff63f2ed6e37e4c463");
 }
