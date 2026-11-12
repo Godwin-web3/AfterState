@@ -4,7 +4,7 @@
 
 AfterState is an execution-assurance protocol for cross-chain workflows. It separates two assertions: (1) a precisely scoped event occurred on a specified source chain, and (2) the destination action completed and its declared postconditions hold. A source event does not prove destination execution; an EVM-successful transaction does not prove the intended application outcome.
 
-> Status: experimental prototype. The EVM reference contracts compile and pass the current Foundry suite. The NEAR Read RPC / MPC adapter remains under implementation. The system is unaudited and not production-ready.
+> Status: experimental prototype. The EVM reference contracts compile and pass the current Foundry suite. A thin NEAR contract now submits candidate Base EVM logs to MPC 3.19.0 and checks the returned payload hash. Source-agreement decoding and the Chain Signatures EIP-712 signing stage remain under implementation. The system is unaudited and not production-ready.
 
 ## Design goals
 - Typed, domain-separated source attestations.
@@ -42,7 +42,7 @@ No arbitrary source-chain consensus proofs, arbitrary off-chain fact proofs, cro
 MIT. See LICENSE.
 
 ## NEAR integration status
-Base Sepolia (chain ID 84532) is present in the MPC 3.19.0 example testnet node configuration. This does not prove the live testnet signer contract currently advertises Base as available. The deployed ForeignTx domain, Sign domain, chain availability, provider quorum and root key must be checked against live testnet state before an end-to-end claim. See near/ARCHITECTURE.md and near/REQUEST_SCHEMA.md. No NEAR adapter is claimed as implemented yet.
+Base Sepolia (chain ID 84532) is present in the MPC 3.19.0 example testnet node configuration. This does not prove the live testnet signer contract currently advertises Base as available. The deployed ForeignTx domain, Sign domain, chain availability, provider quorum and root key must be checked against live testnet state before an end-to-end claim. See near/ARCHITECTURE.md, near/REQUEST_SCHEMA.md and near/adapter/README.md. The ForeignTx verification stage is implemented and WASM-target checked; it is not yet a complete AfterState attestation flow. It does not validate the application event schema or issue the destination EIP-712 signature.
 
 ## Security review
 See docs/SECURITY_REVIEW.md for implemented controls, trust boundaries, fixes and outstanding tests.
