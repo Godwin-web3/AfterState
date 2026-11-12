@@ -35,3 +35,6 @@ No arbitrary source-chain consensus proofs, arbitrary off-chain fact proofs, cro
 
 ## License
 MIT. See LICENSE.
+
+## Current implementation
+The EVM reference now includes an EIP-712 verifier with versioned signer keys, signer revocation, destination-registry binding and low-s signature checks, plus a Foundry test suite covering valid consumption, replay, registry-domain substitution, revoked signers, expiry and agreement constraints. These tests are authored but have not yet been executed in this environment.
