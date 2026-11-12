@@ -39,6 +39,7 @@ contract DeployEthereumSepolia is AfterStateDeployBase {
         require(minAmountRaw > 0 && maxAmountRaw >= minAmountRaw, "invalid agreement amounts");
         require(maxAmountRaw <= type(uint128).max, "maximum amount exceeds uint128");
         require(deadlineRaw <= type(uint64).max, "deadline exceeds uint64");
+        require(deadlineRaw > block.timestamp, "agreement deadline must be in the future");
         uint128 minAmount = uint128(minAmountRaw);
         uint128 maxAmount = uint128(maxAmountRaw);
         uint64 deadline = uint64(deadlineRaw);
